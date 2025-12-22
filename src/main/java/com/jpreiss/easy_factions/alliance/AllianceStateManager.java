@@ -115,7 +115,7 @@ public class AllianceStateManager {
         Alliance alliance = alliances.get(allianceName);
 
         if (!alliance.invited.contains(playerFaction.name))
-            throw new RuntimeException("The are not invited to the requested alliance.");
+            throw new RuntimeException("You are not invited to the requested alliance.");
 
         if (alliance.members.size() >= MAX_ALLIANCE_SIZE)
             throw new RuntimeException("The alliance has already reached its maximum amount of members.");
