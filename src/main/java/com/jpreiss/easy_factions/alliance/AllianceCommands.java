@@ -50,7 +50,7 @@ public class AllianceCommands {
                             }
                         })
                         .then(Commands.argument("target", StringArgumentType.greedyString())
-                                .suggests(ALLIANCE_INVITATIONS_SUGGESTION)
+                                .suggests(UNINVITED_ALLIANCES)
                                 .executes(ctx -> {
                                     ServerPlayer player = ctx.getSource().getPlayerOrException();
                                     String target = StringArgumentType.getString(ctx, "target");
@@ -75,7 +75,7 @@ public class AllianceCommands {
                                 return false;
                             }
                         }).then(Commands.argument("name", StringArgumentType.greedyString())
-                                .suggests(UNINVITED_ALLIANCES)
+                                .suggests(ALLIANCE_INVITATIONS_SUGGESTION)
                                 .executes(ctx -> {
                                     ServerPlayer player = ctx.getSource().getPlayerOrException();
                                     String name = StringArgumentType.getString(ctx, "name");
