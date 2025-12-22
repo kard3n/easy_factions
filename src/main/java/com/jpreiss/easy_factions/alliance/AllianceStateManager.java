@@ -227,9 +227,9 @@ public class AllianceStateManager {
 
                 // Rebuild lookup map
                 this.factionAllianceMap.clear();
-                for (Alliance f : alliances.values()) {
-                    for (String member : f.members) {
-                        factionAllianceMap.put(member, f.name);
+                for (Alliance alliance : alliances.values()) {
+                    for (String member : alliance.members) {
+                        factionAllianceMap.put(member, alliance.name);
                     }
                 }
             }
