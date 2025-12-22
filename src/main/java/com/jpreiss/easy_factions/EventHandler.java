@@ -26,8 +26,8 @@ public class EventHandler {
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 
         FactionStateManager factionStateManager = FactionStateManager.get();
-        Faction victimFac = factionStateManager.getFactionByPlayer(attackerUUID);
-        Faction attackerFac = factionStateManager.getFactionByPlayer(victimUUID);
+        Faction victimFac = factionStateManager.getFactionByPlayer(victimUUID);
+        Faction attackerFac = factionStateManager.getFactionByPlayer(attackerUUID);
 
         if (victimFac == null || attackerFac == null) return;
 
@@ -39,14 +39,13 @@ public class EventHandler {
         }
 
         AllianceStateManager allianceStateManager = AllianceStateManager.get();
+        Alliance attackerAlliance = allianceStateManager.getAllianceByFaction(attackerFac.name);
         Alliance victimAlliance = allianceStateManager.getAllianceByFaction(victimFac.name);
 
-        // Check for alliance
-        if (victimAlliance != null && victimAlliance.members.contains(attackerFac.name)) {
-            // Synced friendly fire: friendly fire is disabled if either faction has it disabled.
-            if (!victimFac.friendlyFire || !attackerFac.friendlyFire) {
-                event.setCanceled(true);
-            }
+        if (attackerAlliance == null || victimAlliance == null) return;
+
+        if (attackerAlliance == victimAlliance && (!attackerFac.friendlyFire || !victimFac.friendlyFire)) {
+            event.setCanceled(true);
         }
     }
 
