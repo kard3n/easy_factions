@@ -12,6 +12,8 @@ import com.jpreiss.easy_factions.api.events.FactionDisbandEvent;
 import com.jpreiss.easy_factions.api.events.FactionJoinEvent;
 import com.jpreiss.easy_factions.api.events.FactionLeaveEvent;
 import com.mojang.logging.LogUtils;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.loading.FMLPaths;
@@ -118,13 +120,13 @@ public class FactionStateManager {
         Faction f = factions.get(factionName);
 
         if (f.owner.equals(playerUUID)) {
-            MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player));
+            MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
             disbandFaction(factionName);
         } else {
             f.members.remove(playerUUID);
             playerFactionMap.remove(playerUUID);
 
-            MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player));
+            MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
             save();
         }
         Utils.refreshCommandTree(player);
@@ -133,23 +135,33 @@ public class FactionStateManager {
     /**
      * Leave the faction. If the owner leaves it, it is disbanded
      * @param leader The person executing this
-     * @param player The player being kicked
+     * @param targetName Name of the player being kicked
      * @throws RuntimeException if the player doesn't exist
      */
-    public void kickFromFaction(ServerPlayer leader, ServerPlayer player) throws RuntimeException {
-        if (leader.equals(player)) throw new RuntimeException("You can't kick yourself from the faction!");
+    public void kickFromFaction(ServerPlayer leader, String targetName, MinecraftServer server) throws RuntimeException {
+        if (leader.getName().getString().equals(targetName)) throw new RuntimeException("You can't kick yourself from the faction!");
 
-        String playerFactionName = playerFactionMap.get(player.getUUID());
+        // Look up UUID of the player, in case they are offline
+        UUID playerUUID = Utils.getPlayerUUIDOffline(targetName, server);
+
+        String targetFactionName = playerFactionMap.get(playerUUID);
 
         Faction leaderFaction = getOwnedFaction(leader.getUUID());
 
-        if (playerFactionName == null || !playerFactionName.equals(leaderFaction.name)) throw new RuntimeException("The player is not in your faction.");
+        if (targetFactionName == null || !targetFactionName.equals(leaderFaction.name)) throw new RuntimeException("The player is not in your faction.");
 
-        leaderFaction.members.remove(player.getUUID());
+        leaderFaction.members.remove(playerUUID);
+        playerFactionMap.remove(playerUUID);
 
-        MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(leaderFaction.name, player));
+        MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(leaderFaction.name, playerUUID));
 
-        Utils.refreshCommandTree(player);
+        // Notify the player and refresh his command tree if he's online
+        ServerPlayer targetOnline =server.getPlayerList().getPlayer(playerUUID);
+        if (targetOnline != null) {
+            Utils.refreshCommandTree(targetOnline);
+            targetOnline.sendSystemMessage(Component.literal("You were kicked from the faction."));
+        }
+
 
         save();
     }

@@ -1,18 +1,19 @@
 package com.jpreiss.easy_factions.api.events;
 
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.eventbus.api.Event;
+
+import java.util.UUID;
 
 /**
  * Fired when a player leaves the faction
  */
 public class FactionLeaveEvent extends Event {
     private final String factionName;
-    private final ServerPlayer player;
+    private final UUID player;
 
-    public FactionLeaveEvent(String factionName, ServerPlayer creator) {
+    public FactionLeaveEvent(String factionName, UUID player) {
         this.factionName = factionName;
-        this.player = creator;
+        this.player = player;
     }
 
     public String getFactionName() {
@@ -20,7 +21,7 @@ public class FactionLeaveEvent extends Event {
     }
 
     /**
-     * Returns the creator of the faction
+     * Returns the UUID of the player who left
      */
-    public ServerPlayer getPlayer() {return player;}
+    public UUID getPlayer() {return player;}
 }

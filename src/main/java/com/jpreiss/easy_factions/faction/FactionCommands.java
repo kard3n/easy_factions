@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.faction;
 
+import com.jpreiss.easy_factions.Utils;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -12,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
+import java.util.UUID;
 
 public class FactionCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -117,16 +119,15 @@ public class FactionCommands {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("member", EntityArgument.player()).suggests(FACTION_MEMBERS)
+                        .then(Commands.argument("member", StringArgumentType.word()).suggests(FACTION_MEMBERS)
                                 .executes(ctx -> {
                                     ServerPlayer player = ctx.getSource().getPlayerOrException();
-                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "member");
+                                    String targetName = StringArgumentType.getString(ctx, "member");
                                     FactionStateManager data = FactionStateManager.get();
 
                                     try {
-                                        data.kickFromFaction(player, target);
-                                        ctx.getSource().sendSuccess(() -> Component.literal("Invited " + target.getName().getString()), true);
-                                        player.sendSystemMessage(Component.literal("The player has been kicked from the faction!"), true);
+                                        data.kickFromFaction(player, targetName, ctx.getSource().getServer());
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Kicked " + targetName), true);
                                     } catch (RuntimeException e) {
                                         ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
@@ -234,15 +235,12 @@ public class FactionCommands {
         FactionStateManager data = FactionStateManager.get();
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
+        for(UUID memberUUID : leaderFaction.members) {
+            if (memberUUID.equals(leader.getUUID())) continue;
 
-        for (ServerPlayer p : context.getSource().getServer().getPlayerList().getPlayers()) {
-
-            if (p.getUUID().equals(leader.getUUID())) continue;
-
-            if (leaderFaction.members.contains(p.getUUID())) {
-                builder.suggest(p.getName().getString());
-            }
+            builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }
+
         return builder.buildFuture();
     };
 }
