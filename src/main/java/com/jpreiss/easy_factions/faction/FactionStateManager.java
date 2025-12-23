@@ -76,13 +76,13 @@ public class FactionStateManager {
      */
     public String invitePlayer(ServerPlayer invitingUser, ServerPlayer invitedUser) throws RuntimeException {
         Faction faction = getOwnedFaction(invitingUser.getUUID());
-        if(faction.members.size() >= MAX_FACTION_SIZE) throw new  RuntimeException("Your faction is already full. Please remove members before you invite more.");
+        if(faction.getMembers().size() >= MAX_FACTION_SIZE) throw new  RuntimeException("Your faction is already full. Please remove members before you invite more.");
 
-        faction.invited.add(invitedUser.getUUID());
+        faction.getInvited().add(invitedUser.getUUID());
 
         save();
 
-        return faction.name;
+        return faction.getName();
     }
 
     /**
@@ -94,11 +94,11 @@ public class FactionStateManager {
     public void joinFaction(ServerPlayer player, String factionName) throws RuntimeException {
         if (playerFactionMap.containsKey(player.getUUID())) throw new RuntimeException("You can't join another faction!");
         Faction f = factions.get(factionName);
-        if (f == null || !f.invited.contains(player.getUUID())) throw new RuntimeException("You have not been invited to this faction or it does not exist.");
-        if(f.members.size() >= MAX_FACTION_SIZE) throw new  RuntimeException("This faction is already full.");
+        if (f == null || !f.getInvited().contains(player.getUUID())) throw new RuntimeException("You have not been invited to this faction or it does not exist.");
+        if(f.getMembers().size() >= MAX_FACTION_SIZE) throw new  RuntimeException("This faction is already full.");
 
-        f.invited.remove(player.getUUID());
-        f.members.add(player.getUUID());
+        f.getInvited().remove(player.getUUID());
+        f.getMembers().add(player.getUUID());
         playerFactionMap.put(player.getUUID(), factionName);
 
         MinecraftForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
@@ -119,11 +119,11 @@ public class FactionStateManager {
         if (factionName == null) throw new RuntimeException("You are not in a faction!.");
         Faction f = factions.get(factionName);
 
-        if (f.owner.equals(playerUUID)) {
+        if (f.getOwner().equals(playerUUID)) {
             MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
             disbandFaction(factionName);
         } else {
-            f.members.remove(playerUUID);
+            f.getMembers().remove(playerUUID);
             playerFactionMap.remove(playerUUID);
 
             MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
@@ -148,12 +148,12 @@ public class FactionStateManager {
 
         Faction leaderFaction = getOwnedFaction(leader.getUUID());
 
-        if (targetFactionName == null || !targetFactionName.equals(leaderFaction.name)) throw new RuntimeException("The player is not in your faction.");
+        if (targetFactionName == null || !targetFactionName.equals(leaderFaction.getName())) throw new RuntimeException("The player is not in your faction.");
 
-        leaderFaction.members.remove(playerUUID);
+        leaderFaction.getMembers().remove(playerUUID);
         playerFactionMap.remove(playerUUID);
 
-        MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(leaderFaction.name, playerUUID));
+        MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(leaderFaction.getName(), playerUUID));
 
         // Notify the player and refresh his command tree if he's online
         ServerPlayer targetOnline =server.getPlayerList().getPlayer(playerUUID);
@@ -175,7 +175,7 @@ public class FactionStateManager {
         if (faction == null) return;
 
         // Remove all members from lookup
-        for (UUID member : faction.members) {
+        for (UUID member : faction.getMembers()) {
             playerFactionMap.remove(member);
         }
 
@@ -201,7 +201,7 @@ public class FactionStateManager {
     public void setFriendlyFire(ServerPlayer requestingUser, boolean state) throws RuntimeException {
         Faction faction = getOwnedFaction(requestingUser.getUUID());
 
-        faction.friendlyFire = state;
+        faction.setFriendlyFire(state);
 
         save();
     }
@@ -217,7 +217,7 @@ public class FactionStateManager {
 
     public boolean playerOwnsFaction(UUID player) {
         Faction playerFaction = getFactionByPlayer(player);
-        return (playerFaction != null && playerFaction.owner.equals(player));
+        return (playerFaction != null && playerFaction.getOwner().equals(player));
     }
 
     public boolean factionExists(String factionName){
@@ -230,8 +230,8 @@ public class FactionStateManager {
     public List<String> getInvitesForPlayer(UUID playerUUID) {
         List<String> invitedFactionNames = new ArrayList<>();
         for (Faction f : factions.values()) {
-            if (f.invited.contains(playerUUID)) {
-                invitedFactionNames.add(f.name);
+            if (f.getInvited().contains(playerUUID)) {
+                invitedFactionNames.add(f.getName());
             }
         }
         return invitedFactionNames;
@@ -246,7 +246,7 @@ public class FactionStateManager {
     public Faction getOwnedFaction(UUID player) throws RuntimeException {
         Faction playerFaction = getFactionByPlayer(player);
         if (playerFaction == null) throw new RuntimeException("You are not in a faction.");
-        if (!playerFaction.owner.equals(player)) throw new RuntimeException("You are not the owner of the faction you are in. Owner:" + playerFaction.owner + ". You: " + player);
+        if (!playerFaction.getOwner().equals(player)) throw new RuntimeException("You are not the owner of the faction you are in.");
         return playerFaction;
     }
 
@@ -271,8 +271,8 @@ public class FactionStateManager {
                 // Rebuild lookup map
                 this.playerFactionMap.clear();
                 for (Faction f : factions.values()) {
-                    for (UUID member : f.members) {
-                        playerFactionMap.put(member, f.name);
+                    for (UUID member : f.getMembers()) {
+                        playerFactionMap.put(member, f.getName());
                     }
                 }
             }

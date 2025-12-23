@@ -32,19 +32,19 @@ public class EventHandler {
         if (victimFac == null || attackerFac == null) return;
 
         if (victimFac == attackerFac) {
-            if (!victimFac.friendlyFire) {
+            if (!victimFac.getFriendlyFire()) {
                 event.setCanceled(true);
             }
             return;
         }
 
         AllianceStateManager allianceStateManager = AllianceStateManager.get();
-        Alliance attackerAlliance = allianceStateManager.getAllianceByFaction(attackerFac.name);
-        Alliance victimAlliance = allianceStateManager.getAllianceByFaction(victimFac.name);
+        Alliance attackerAlliance = allianceStateManager.getAllianceByFaction(attackerFac.getName());
+        Alliance victimAlliance = allianceStateManager.getAllianceByFaction(victimFac.getName());
 
         if (attackerAlliance == null || victimAlliance == null) return;
 
-        if (attackerAlliance == victimAlliance && (!attackerFac.friendlyFire || !victimFac.friendlyFire)) {
+        if (attackerAlliance == victimAlliance && (!attackerFac.getFriendlyFire() || !victimFac.getFriendlyFire())) {
             event.setCanceled(true);
         }
     }
