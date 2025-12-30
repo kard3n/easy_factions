@@ -19,7 +19,7 @@ public class AllianceCommands {
                         .requires(source -> {
                             try {
                                 ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).name) == null;
+                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).getName()) == null;
                             } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
@@ -44,7 +44,7 @@ public class AllianceCommands {
                         .requires(source -> {
                             try {
                                 ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).name) != null;
+                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).getName()) != null;
                             } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
@@ -70,7 +70,7 @@ public class AllianceCommands {
                         .requires(source -> {
                             try {
                                 ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).name) == null;
+                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getOwnedFaction(player.getUUID()).getName()) == null;
                             } catch (RuntimeException | CommandSyntaxException e) {
                                 return false;
                             }
@@ -96,7 +96,7 @@ public class AllianceCommands {
                         .requires(source -> {
                             try {
                                 ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getFactionByPlayer(player.getUUID()).name) != null;
+                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getFactionByPlayer(player.getUUID()).getName()) != null;
                             } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
@@ -119,7 +119,7 @@ public class AllianceCommands {
                         .requires(source -> {
                             try {
                                 ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getFactionByPlayer(player.getUUID()).name) != null;
+                                return AllianceStateManager.get().getAllianceByFaction(FactionStateManager.get().getFactionByPlayer(player.getUUID()).getName()) != null;
                             } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
@@ -133,7 +133,7 @@ public class AllianceCommands {
                                 return 1;
                             }
 
-                            Alliance alliance = manager.getAllianceByFaction(playerFaction.name);
+                            Alliance alliance = manager.getAllianceByFaction(playerFaction.getName());
 
                             if (alliance == null) {
                                 ctx.getSource().sendSuccess(() -> Component.literal("Your faction is not in an alliance."), true);
@@ -141,8 +141,8 @@ public class AllianceCommands {
                             }
 
                             StringBuilder builder = new StringBuilder();
-                            builder.append("Your faction is a member of \"").append(alliance.name).append("\". Members are: ");
-                            for (String member : alliance.members) {
+                            builder.append("Your faction is a member of \"").append(alliance.getName()).append("\". Members are: ");
+                            for (String member : alliance.getMembers()) {
                                 builder.append(member).append("\n");
                             }
 
@@ -165,7 +165,7 @@ public class AllianceCommands {
         Faction leaderFaction = factionManager.getFactionByPlayer(leader.getUUID());
         if (leaderFaction == null) return builder.buildFuture();
 
-        for (String factionName : allianceManager.getInvitesForFaction(leaderFaction.name)) {
+        for (String factionName : allianceManager.getInvitesForFaction(leaderFaction.getName())) {
             builder.suggest(factionName);
         }
 
@@ -182,12 +182,12 @@ public class AllianceCommands {
 
         Faction leaderFaction = factionManager.getFactionByPlayer(leader.getUUID());
         if (leaderFaction == null) return builder.buildFuture();
-        Alliance alliance = allianceManager.getAllianceByFaction(leaderFaction.name);
+        Alliance alliance = allianceManager.getAllianceByFaction(leaderFaction.getName());
         if (alliance == null) return builder.buildFuture();
 
 
         for (String allianceName : allianceManager.getAllianceNames()) {
-            if (alliance.members.contains(allianceName)) continue;
+            if (alliance.getMembers().contains(allianceName)) continue;
 
             builder.suggest(allianceName);
         }

@@ -175,7 +175,12 @@ public class FactionCommands {
                             if (playerFaction == null) {
                                 ctx.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), true);
                             } else {
-                                ctx.getSource().sendSuccess(() -> Component.literal("You are a member of \"" + playerFaction.name + "\"\nYour faction has " + playerFaction.members.size() + " members."), true);
+                                StringBuilder builder = new StringBuilder();
+                                builder.append("You are a member of \"").append(playerFaction.getName()).append("\"\nYour members are: ");
+                                for(UUID member : playerFaction.getMembers()) {
+                                    builder.append(Utils.getPlayerNameOffline(member, ctx.getSource().getServer())).append(" ");
+                                }
+                                ctx.getSource().sendSuccess(() -> Component.literal(builder.toString()), true);
                             }
 
                             return 1;
@@ -215,12 +220,12 @@ public class FactionCommands {
             if (p.getUUID().equals(leader.getUUID())) continue;
 
             // Skip players who are already members of the faction
-            if (leaderFaction != null && leaderFaction.members.contains(p.getUUID())) {
+            if (leaderFaction != null && leaderFaction.getMembers().contains(p.getUUID())) {
                 continue;
             }
 
             // Skip those already invited
-            if (leaderFaction != null && leaderFaction.invited.contains(p.getUUID())) continue;
+            if (leaderFaction != null && leaderFaction.getInvited().contains(p.getUUID())) continue;
 
             builder.suggest(p.getName().getString());
         }
@@ -235,7 +240,7 @@ public class FactionCommands {
         FactionStateManager data = FactionStateManager.get();
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
-        for(UUID memberUUID : leaderFaction.members) {
+        for(UUID memberUUID : leaderFaction.getMembers()) {
             if (memberUUID.equals(leader.getUUID())) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));

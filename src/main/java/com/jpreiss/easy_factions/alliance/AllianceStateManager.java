@@ -60,14 +60,14 @@ public class AllianceStateManager {
         Faction creatorFaction = FactionStateManager.get().getOwnedFaction(creator.getUUID());
 
         // Check that the faction isn't in an alliance
-        if (factionAllianceMap.containsKey(creatorFaction.name))
+        if (factionAllianceMap.containsKey(creatorFaction.getName()))
             throw new RuntimeException("Your faction is already in the following alliance: \"" + factionAllianceMap.get(name) + "\"");
 
-        Alliance alliance = new Alliance(name, Set.of(creatorFaction.name));
+        Alliance alliance = new Alliance(name, Set.of(creatorFaction.getName()));
         alliances.put(name, alliance);
-        factionAllianceMap.put(creatorFaction.name, name);
+        factionAllianceMap.put(creatorFaction.getName(), name);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.name));
+        MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
         Utils.refreshCommandTree(creator);
 
         save();
@@ -82,20 +82,20 @@ public class AllianceStateManager {
      */
     public void inviteFaction(ServerPlayer invitingUser, String invitedFactionName) throws RuntimeException {
         Faction invitingFaction = FactionStateManager.get().getOwnedFaction(invitingUser.getUUID());
-        if (!factionAllianceMap.containsKey(invitingFaction.name))
+        if (!factionAllianceMap.containsKey(invitingFaction.getName()   ))
             throw new RuntimeException("Your faction is not in an alliance. Create one first.");
         if (!FactionStateManager.get().factionExists(invitedFactionName))
             throw new RuntimeException("The invited faction does not exist.");
-        Alliance alliance = alliances.get(factionAllianceMap.get(invitingFaction.name));
-        if (alliance.members.contains(invitedFactionName))
+        Alliance alliance = alliances.get(factionAllianceMap.get(invitingFaction.getName()));
+        if (alliance.getMembers().contains(invitedFactionName))
             throw new RuntimeException("The requested faction is already in your alliance.");
-        if (alliance.members.size() >= MAX_ALLIANCE_SIZE)
+        if (alliance.getMembers().size() >= MAX_ALLIANCE_SIZE)
             throw new RuntimeException("Your alliance has already reached its maximum amount of members.");
 
         Faction invitedFaction = FactionStateManager.get().getFactionByPlayer(invitingUser.getUUID());
         if (invitedFaction == null) throw new RuntimeException("The invited faction does not exist.");
 
-        alliance.invited.add(invitedFactionName);
+        alliance.getInvited().add(invitedFactionName);
         save();
     }
 
@@ -109,21 +109,21 @@ public class AllianceStateManager {
     public void joinAlliance(ServerPlayer player, String allianceName) throws RuntimeException {
         Faction playerFaction = FactionStateManager.get().getOwnedFaction(player.getUUID());
 
-        if (factionAllianceMap.containsKey(playerFaction.name))
+        if (factionAllianceMap.containsKey(playerFaction.getName()))
             throw new RuntimeException("Your faction is already in an alliance. Leave it first to join this one.");
         if (!alliances.containsKey(allianceName)) throw new RuntimeException("The requested alliance does not exist.");
         Alliance alliance = alliances.get(allianceName);
 
-        if (!alliance.invited.contains(playerFaction.name))
+        if (!alliance.getInvited().contains(playerFaction.getName()))
             throw new RuntimeException("You are not invited to the requested alliance.");
 
-        if (alliance.members.size() >= MAX_ALLIANCE_SIZE)
+        if (alliance.getMembers().size() >= MAX_ALLIANCE_SIZE)
             throw new RuntimeException("The alliance has already reached its maximum amount of members.");
 
-        alliance.invited.remove(playerFaction.name);
-        alliance.members.add(playerFaction.name);
+        alliance.getInvited().remove(playerFaction.getName());
+        alliance.getMembers().add(playerFaction.getName());
 
-        MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.name));
+        MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
 
         save();
@@ -149,17 +149,17 @@ public class AllianceStateManager {
      * @throws RuntimeException If: the faction does not exist or is not part of an alliance
      */
     public void forceLeaveAlliance(Faction faction) throws RuntimeException {
-        String allianceName = factionAllianceMap.get(faction.name);
+        String allianceName = factionAllianceMap.get(faction.getName());
         if (allianceName == null) throw new RuntimeException("The faction is not in an alliance.");
 
         Alliance alliance = alliances.get(allianceName);
-        alliance.members.remove(faction.name);
-        factionAllianceMap.remove(faction.name);
+        alliance.getMembers().remove(faction.getName());
+        factionAllianceMap.remove(faction.getName());
 
         // Disband alliance if no members are left
-        if (alliance.members.isEmpty()) disbandAlliance(alliance);
+        if (alliance.getMembers().isEmpty()) disbandAlliance(alliance);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.name));
+        MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
 
         save();
     }
@@ -170,13 +170,13 @@ public class AllianceStateManager {
      * @param alliance The alliance to disband
      */
     public void disbandAlliance(Alliance alliance) {
-        for (String factionName : alliance.members) {
+        for (String factionName : alliance.getMembers()) {
             factionAllianceMap.remove(factionName);
         }
 
-        alliances.remove(alliance.name);
+        alliances.remove(alliance.getName());
 
-        MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance.name));
+        MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance.getName()));
 
         save();
     }
@@ -197,7 +197,7 @@ public class AllianceStateManager {
     public List<String> getInvitesForFaction(String factionName) {
         List<String> invitedAllianceNames = new ArrayList<>();
         for (Alliance f : alliances.values()) {
-            if (f.invited.contains(factionName)) invitedAllianceNames.add(f.name);
+            if (f.getInvited().contains(factionName)) invitedAllianceNames.add(f.getName());
         }
         return invitedAllianceNames;
     }
@@ -237,8 +237,8 @@ public class AllianceStateManager {
                 // Rebuild lookup map
                 this.factionAllianceMap.clear();
                 for (Alliance alliance : alliances.values()) {
-                    for (String member : alliance.members) {
-                        factionAllianceMap.put(member, alliance.name);
+                    for (String member : alliance.getMembers()) {
+                        factionAllianceMap.put(member, alliance.getName());
                     }
                 }
             }
