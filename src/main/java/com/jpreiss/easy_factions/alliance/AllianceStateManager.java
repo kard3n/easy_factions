@@ -206,6 +206,15 @@ public class AllianceStateManager {
         return alliances.keySet();
     }
 
+    /**
+     * Gets an alliance by its name
+     * @param allianceName The name of the alliance
+     * @return The alliance or null if it doesn't exist
+     */
+    public Alliance getAlliance(String allianceName) {
+        return alliances.get(allianceName);
+    }
+
 
     /**
      * Loads the data from the file
