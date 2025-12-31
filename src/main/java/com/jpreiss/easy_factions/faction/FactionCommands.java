@@ -34,7 +34,7 @@ public class FactionCommands {
 
                             try {
                                 data.createFaction(name, player);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), false);
                             } catch (RuntimeException e) {
                                 ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -57,7 +57,7 @@ public class FactionCommands {
 
                             try {
                                 String name = data.invitePlayer(player, target);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Invited " + target.getName().getString()), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Invited " + target.getName().getString()), false);
                                 //
                                 target.sendSystemMessage(Component.literal("You were invited to a faction! Type /faction join <" + name + ">"));
                             } catch (RuntimeException e) {
@@ -82,7 +82,7 @@ public class FactionCommands {
 
                             try {
                                 data.joinFaction(player, name);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), false);
                             } catch (RuntimeException e) {
                                 ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -104,7 +104,7 @@ public class FactionCommands {
 
                             try {
                                 data.leaveFaction(player);
-                                ctx.getSource().sendSuccess(() -> Component.literal("You left the faction."), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("You left the faction."), false);
                             } catch (RuntimeException e) {
                                 ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -127,7 +127,7 @@ public class FactionCommands {
 
                                     try {
                                         data.kickFromFaction(player, targetName, ctx.getSource().getServer());
-                                        ctx.getSource().sendSuccess(() -> Component.literal("Kicked " + targetName), true);
+                                        ctx.getSource().sendSuccess(() -> Component.literal("Kicked " + targetName), false);
                                     } catch (RuntimeException e) {
                                         ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
@@ -151,7 +151,7 @@ public class FactionCommands {
                             try {
                                 data.setFriendlyFire(player, newFFState);
                                 String status = newFFState ? "enabled" : "disabled";
-                                ctx.getSource().sendSuccess(() -> Component.literal("Friendly fire is now " + status + "."), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Friendly fire is now " + status + "."), false);
                             } catch (RuntimeException e) {
                                 ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -173,14 +173,14 @@ public class FactionCommands {
                             Faction playerFaction = FactionStateManager.get().getFactionByPlayer(player.getUUID());
 
                             if (playerFaction == null) {
-                                ctx.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), false);
                             } else {
                                 StringBuilder builder = new StringBuilder();
                                 builder.append("You are a member of \"").append(playerFaction.getName()).append("\"\nYour members are: ");
                                 for(UUID member : playerFaction.getMembers()) {
                                     builder.append(Utils.getPlayerNameOffline(member, ctx.getSource().getServer())).append(" ");
                                 }
-                                ctx.getSource().sendSuccess(() -> Component.literal(builder.toString()), true);
+                                ctx.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
                             }
 
                             return 1;
