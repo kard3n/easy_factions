@@ -1,9 +1,5 @@
 package com.jpreiss.easy_factions.alliance;
 
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import com.jpreiss.easy_factions.Config;
 import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.api.events.AllianceCreateEvent;
@@ -13,78 +9,80 @@ import com.jpreiss.easy_factions.api.events.AllianceLeaveEvent;
 import com.jpreiss.easy_factions.faction.Faction;
 import com.jpreiss.easy_factions.faction.FactionStateManager;
 import com.mojang.logging.LogUtils;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
-import java.io.*;
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
  * Manages the state and business logic of the mod
  */
-public class AllianceStateManager {
-    private static final File SAVE_FILE = FMLPaths.GAMEDIR.get().resolve("faction_alliance_data.json").toFile();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    public static final int MAX_ALLIANCE_SIZE = Config.maxAllianceSize;
-
+public class AllianceStateManager extends SavedData {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String DATA_NAME = "faction_alliance_data";
+
+    public static final int MAX_ALLIANCE_SIZE = Config.maxAllianceSize;
 
     // In-memory data
     // Map<AllianceName, Alliance>
-    private Map<String, Alliance> alliances = new HashMap<>();
+    private final Map<String, Alliance> alliances = new HashMap<>();
 
     // Map<FactionName, AllianceName> for fast lookups
-    private Map<String, String> factionAllianceMap = new HashMap<>();
+    private final Map<String, String> factionAllianceMap = new HashMap<>();
 
 
-    // Singleton accessor
-    private static final AllianceStateManager INSTANCE = new AllianceStateManager();
-
-    public static AllianceStateManager get() {
-        return INSTANCE;
+    public static AllianceStateManager get(MinecraftServer server) {
+        return server.overworld().getDataStorage()
+                .computeIfAbsent(AllianceStateManager::load, AllianceStateManager::create, DATA_NAME);
     }
 
-    // Core logic
+    public static AllianceStateManager create() {
+        return new AllianceStateManager();
+    }
 
     /**
      * Creates a new alliance
-     *
      * @param name    Name of the alliance to be created
      * @param creator Player creating the alliance
      * @throws RuntimeException If the name is taken or the player is not owner of a faction or the max faction size has been reached
      */
-    public void createAlliance(String name, ServerPlayer creator) throws RuntimeException {
-        Faction creatorFaction = FactionStateManager.get().getOwnedFaction(creator.getUUID());
+    public void createAlliance(String name, ServerPlayer creator, MinecraftServer server) throws RuntimeException {
+        // NOTE: If FactionStateManager is also converted to SavedData, you might need to pass 'creator.serverLevel()' here.
+        Faction creatorFaction = FactionStateManager.get(server).getOwnedFaction(creator.getUUID());
 
         // Check that the faction isn't in an alliance
         if (factionAllianceMap.containsKey(creatorFaction.getName()))
             throw new RuntimeException("Your faction is already in the following alliance: \"" + factionAllianceMap.get(name) + "\"");
 
-        Alliance alliance = new Alliance(name, Set.of(creatorFaction.getName()));
+        Alliance alliance = new Alliance(name, new HashSet<>(Set.of(creatorFaction.getName())));
         alliances.put(name, alliance);
         factionAllianceMap.put(creatorFaction.getName(), name);
 
         MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
         Utils.refreshCommandTree(creator);
 
-        save();
+        this.setDirty();
     }
 
     /**
-     * Invite a player to the faction
-     *
+     * Invite a faction to the faction
      * @param invitingUser       The user inviting
      * @param invitedFactionName The name of the faction being invited
      * @throws RuntimeException If the player doesn't exist or the user is not the leader
      */
-    public void inviteFaction(ServerPlayer invitingUser, String invitedFactionName) throws RuntimeException {
-        Faction invitingFaction = FactionStateManager.get().getOwnedFaction(invitingUser.getUUID());
-        if (!factionAllianceMap.containsKey(invitingFaction.getName()   ))
+    public void inviteFaction(ServerPlayer invitingUser, String invitedFactionName, MinecraftServer server) throws RuntimeException {
+        Faction invitingFaction = FactionStateManager.get(server).getOwnedFaction(invitingUser.getUUID());
+        if (!factionAllianceMap.containsKey(invitingFaction.getName()))
             throw new RuntimeException("Your faction is not in an alliance. Create one first.");
-        if (!FactionStateManager.get().factionExists(invitedFactionName))
+        if (!FactionStateManager.get(server).factionExists(invitedFactionName))
             throw new RuntimeException("The invited faction does not exist.");
         Alliance alliance = alliances.get(factionAllianceMap.get(invitingFaction.getName()));
         if (alliance.getMembers().contains(invitedFactionName))
@@ -92,11 +90,9 @@ public class AllianceStateManager {
         if (alliance.getMembers().size() >= MAX_ALLIANCE_SIZE)
             throw new RuntimeException("Your alliance has already reached its maximum amount of members.");
 
-        Faction invitedFaction = FactionStateManager.get().getFactionByPlayer(invitingUser.getUUID());
-        if (invitedFaction == null) throw new RuntimeException("The invited faction does not exist.");
 
         alliance.getInvited().add(invitedFactionName);
-        save();
+        this.setDirty();
     }
 
     /**
@@ -106,8 +102,8 @@ public class AllianceStateManager {
      * @param allianceName The name of the alliance whose invite the player's faction accepts
      * @throws RuntimeException if the user is already in a faction or hasn't been invited, or if the alliance is already full.
      */
-    public void joinAlliance(ServerPlayer player, String allianceName) throws RuntimeException {
-        Faction playerFaction = FactionStateManager.get().getOwnedFaction(player.getUUID());
+    public void joinAlliance(ServerPlayer player, String allianceName, MinecraftServer server) throws RuntimeException {
+        Faction playerFaction = FactionStateManager.get(server).getOwnedFaction(player.getUUID());
 
         if (factionAllianceMap.containsKey(playerFaction.getName()))
             throw new RuntimeException("Your faction is already in an alliance. Leave it first to join this one.");
@@ -123,10 +119,12 @@ public class AllianceStateManager {
         alliance.getInvited().remove(playerFaction.getName());
         alliance.getMembers().add(playerFaction.getName());
 
+        factionAllianceMap.put(playerFaction.getName(), allianceName);
+
         MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
 
-        save();
+        this.setDirty();
     }
 
     /**
@@ -135,8 +133,8 @@ public class AllianceStateManager {
      * @param player The player requesting his faction to leave
      * @throws RuntimeException If: the player is not in a faction or not the leader, or if the faction is not in an alliance
      */
-    public void leaveAlliance(ServerPlayer player) throws RuntimeException {
-        Faction playerFaction = FactionStateManager.get().getOwnedFaction(player.getUUID());
+    public void leaveAlliance(ServerPlayer player, MinecraftServer server) throws RuntimeException {
+        Faction playerFaction = FactionStateManager.get(server).getOwnedFaction(player.getUUID());
 
         forceLeaveAlliance(playerFaction);
         Utils.refreshCommandTree(player);
@@ -157,11 +155,13 @@ public class AllianceStateManager {
         factionAllianceMap.remove(faction.getName());
 
         // Disband alliance if no members are left
-        if (alliance.getMembers().isEmpty()) disbandAlliance(alliance);
+        if (alliance.getMembers().isEmpty()) {
+            disbandAlliance(alliance);
+        } else {
+            this.setDirty();
+        }
 
         MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
-
-        save();
     }
 
     /**
@@ -178,7 +178,7 @@ public class AllianceStateManager {
 
         MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance.getName()));
 
-        save();
+        this.setDirty();
     }
 
     /**
@@ -206,52 +206,84 @@ public class AllianceStateManager {
         return alliances.keySet();
     }
 
-    /**
-     * Gets an alliance by its name
-     * @param allianceName The name of the alliance
-     * @return The alliance or null if it doesn't exist
-     */
     public Alliance getAlliance(String allianceName) {
         return alliances.get(allianceName);
     }
 
-
     /**
-     * Loads the data from the file
+     * Loads the data from NBT
      */
-    public void load() {
-        if (!SAVE_FILE.exists()) {
-            this.alliances = new HashMap<>();
-            this.factionAllianceMap = new HashMap<>();
-            return;
-        }
+    public static AllianceStateManager load(CompoundTag tag) {
+        AllianceStateManager data = new AllianceStateManager();
 
-        try (Reader reader = new FileReader(SAVE_FILE)) {
-            Type type = new TypeToken<Map<String, Alliance>>() {
-            }.getType();
-            Map<String, Alliance> loadedData = GSON.fromJson(reader, type);
+        if (tag.contains("Alliances", Tag.TAG_LIST)) {
+            ListTag alliancesList = tag.getList("Alliances", Tag.TAG_COMPOUND);
 
-            if (loadedData != null) {
-                this.alliances = loadedData;
+            for (int i = 0; i < alliancesList.size(); i++) {
+                CompoundTag allianceTag = alliancesList.getCompound(i);
+
+                String name = allianceTag.getString("Name");
+                Set<String> members = new HashSet<>();
+                Set<String> invited = new HashSet<>();
+
+                // Load Members
+                ListTag membersTag = allianceTag.getList("Members", Tag.TAG_STRING);
+                for (int j = 0; j < membersTag.size(); j++) {
+                    members.add(membersTag.getString(j));
+                }
+
+                // Load Invites
+                ListTag invitedTag = allianceTag.getList("Invited", Tag.TAG_STRING);
+                for (int j = 0; j < invitedTag.size(); j++) {
+                    invited.add(invitedTag.getString(j));
+                }
+
+                // Create Alliance Object
+                Alliance alliance = new Alliance(name, members);
+                alliance.getInvited().addAll(invited);
+
+                // Add to internal maps
+                data.alliances.put(name, alliance);
 
                 // Rebuild lookup map
-                this.factionAllianceMap.clear();
-                for (Alliance alliance : alliances.values()) {
-                    for (String member : alliance.getMembers()) {
-                        factionAllianceMap.put(member, alliance.getName());
-                    }
+                for (String member : members) {
+                    data.factionAllianceMap.put(member, name);
                 }
             }
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage());
         }
+
+        return data;
     }
 
-    public void save() {
-        try (Writer writer = new FileWriter(SAVE_FILE)) {
-            GSON.toJson(alliances, writer);
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage());
+    /**
+     * Saves the data to NBT
+     */
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        ListTag alliancesList = new ListTag();
+
+        for (Alliance alliance : this.alliances.values()) {
+            CompoundTag allianceTag = new CompoundTag();
+            allianceTag.putString("Name", alliance.getName());
+
+            // Save Members
+            ListTag membersTag = new ListTag();
+            for (String member : alliance.getMembers()) {
+                membersTag.add(StringTag.valueOf(member));
+            }
+            allianceTag.put("Members", membersTag);
+
+            // Save Invited
+            ListTag invitedTag = new ListTag();
+            for (String invitedFaction : alliance.getInvited()) {
+                invitedTag.add(StringTag.valueOf(invitedFaction));
+            }
+            allianceTag.put("Invited", invitedTag);
+
+            alliancesList.add(allianceTag);
         }
+
+        tag.put("Alliances", alliancesList);
+        return tag;
     }
 }

@@ -22,21 +22,21 @@ public class FactionCommands {
                 .then(Commands.literal("create")
                         .requires(source -> {
                             try {
-                                return !FactionStateManager.get().playerIsInFaction(source.getPlayerOrException().getUUID());
+                                return !FactionStateManager.get(source.getServer()).playerIsInFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("name", StringArgumentType.greedyString()).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            String name = StringArgumentType.getString(ctx, "name");
-                            FactionStateManager data = FactionStateManager.get();
+                        .then(Commands.argument("name", StringArgumentType.greedyString()).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            String name = StringArgumentType.getString(context, "name");
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
                                 data.createFaction(name, player);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), false);
+                                context.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), false);
                             } catch (RuntimeException e) {
-                                ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
                             return 1;
                         })))
@@ -45,23 +45,23 @@ public class FactionCommands {
                 .then(Commands.literal("invite")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get().playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("target", EntityArgument.player()).suggests(UNINVITED_PLAYERS).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            ServerPlayer target = EntityArgument.getPlayer(ctx, "target");
-                            FactionStateManager data = FactionStateManager.get();
+                        .then(Commands.argument("target", EntityArgument.player()).suggests(UNINVITED_PLAYERS).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            ServerPlayer target = EntityArgument.getPlayer(context, "target");
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
                                 String name = data.invitePlayer(player, target);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Invited " + target.getName().getString()), false);
+                                context.getSource().sendSuccess(() -> Component.literal("Invited " + target.getName().getString()), false);
                                 //
                                 target.sendSystemMessage(Component.literal("You were invited to a faction! Type /faction join <" + name + ">"));
                             } catch (RuntimeException e) {
-                                ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
                             return 1;
                         })))
@@ -70,21 +70,21 @@ public class FactionCommands {
                 .then(Commands.literal("join")
                         .requires(source -> {
                             try {
-                                return !FactionStateManager.get().playerIsInFaction(source.getPlayerOrException().getUUID());
+                                return !FactionStateManager.get(source.getServer()).playerIsInFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("name", StringArgumentType.greedyString()).suggests(FACTIONS_INVITATIONS_SUGGESTION).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            String name = StringArgumentType.getString(ctx, "name");
-                            FactionStateManager data = FactionStateManager.get();
+                        .then(Commands.argument("name", StringArgumentType.greedyString()).suggests(FACTIONS_INVITATIONS_SUGGESTION).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            String name = StringArgumentType.getString(context, "name");
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
                                 data.joinFaction(player, name);
-                                ctx.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), false);
+                                context.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), false);
                             } catch (RuntimeException e) {
-                                ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
 
                             return 1;
@@ -94,19 +94,19 @@ public class FactionCommands {
                 .then(Commands.literal("leave")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get().playerIsInFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerIsInFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
-                        }).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            FactionStateManager data = FactionStateManager.get();
+                        }).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
-                                data.leaveFaction(player);
-                                ctx.getSource().sendSuccess(() -> Component.literal("You left the faction."), false);
+                                data.leaveFaction(player, context.getSource().getServer());
+                                context.getSource().sendSuccess(() -> Component.literal("You left the faction."), false);
                             } catch (RuntimeException e) {
-                                ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
                             return 1;
                         }))
@@ -114,22 +114,22 @@ public class FactionCommands {
                 .then(Commands.literal("kick")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get().playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
                         })
                         .then(Commands.argument("member", StringArgumentType.word()).suggests(FACTION_MEMBERS)
-                                .executes(ctx -> {
-                                    ServerPlayer player = ctx.getSource().getPlayerOrException();
-                                    String targetName = StringArgumentType.getString(ctx, "member");
-                                    FactionStateManager data = FactionStateManager.get();
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    String targetName = StringArgumentType.getString(context, "member");
+                                    FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                                     try {
-                                        data.kickFromFaction(player, targetName, ctx.getSource().getServer());
-                                        ctx.getSource().sendSuccess(() -> Component.literal("Kicked " + targetName), false);
+                                        data.kickFromFaction(player, targetName, context.getSource().getServer());
+                                        context.getSource().sendSuccess(() -> Component.literal("Kicked " + targetName), false);
                                     } catch (RuntimeException e) {
-                                        ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                        context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
                                     return 1;
                                 })))
@@ -138,22 +138,22 @@ public class FactionCommands {
                 .then(Commands.literal("friendlyFire")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get().playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            boolean newFFState = BoolArgumentType.getBool(ctx, "enabled");
-                            FactionStateManager data = FactionStateManager.get();
+                        .then(Commands.argument("enabled", BoolArgumentType.bool()).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            boolean newFFState = BoolArgumentType.getBool(context, "enabled");
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
                                 data.setFriendlyFire(player, newFFState);
                                 String status = newFFState ? "enabled" : "disabled";
-                                ctx.getSource().sendSuccess(() -> Component.literal("Friendly fire is now " + status + "."), false);
+                                context.getSource().sendSuccess(() -> Component.literal("Friendly fire is now " + status + "."), false);
                             } catch (RuntimeException e) {
-                                ctx.getSource().sendFailure(Component.literal(e.getMessage()));
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
 
                             return 1;
@@ -164,23 +164,23 @@ public class FactionCommands {
                 .then(Commands.literal("about")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get().playerIsInFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerIsInFaction(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
-                        }).executes(ctx -> {
-                            ServerPlayer player = ctx.getSource().getPlayerOrException();
-                            Faction playerFaction = FactionStateManager.get().getFactionByPlayer(player.getUUID());
+                        }).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            Faction playerFaction = FactionStateManager.get(context.getSource().getServer()).getFactionByPlayer(player.getUUID());
 
                             if (playerFaction == null) {
-                                ctx.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), false);
+                                context.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), false);
                             } else {
                                 StringBuilder builder = new StringBuilder();
                                 builder.append("You are a member of \"").append(playerFaction.getName()).append("\"\nYour members are: ");
                                 for(UUID member : playerFaction.getMembers()) {
-                                    builder.append(Utils.getPlayerNameOffline(member, ctx.getSource().getServer())).append(" ");
+                                    builder.append(Utils.getPlayerNameOffline(member, context.getSource().getServer())).append(" ");
                                 }
-                                ctx.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
+                                context.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
                             }
 
                             return 1;
@@ -194,7 +194,7 @@ public class FactionCommands {
      */
     private static final SuggestionProvider<CommandSourceStack> FACTIONS_INVITATIONS_SUGGESTION = (context, builder) -> {
         ServerPlayer player = context.getSource().getPlayerOrException();
-        FactionStateManager data = FactionStateManager.get();
+        FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
         List<String> invites = data.getInvitesForPlayer(player.getUUID());
 
@@ -211,7 +211,7 @@ public class FactionCommands {
      */
     private static final SuggestionProvider<CommandSourceStack> UNINVITED_PLAYERS = (context, builder) -> {
         ServerPlayer leader = context.getSource().getPlayerOrException();
-        FactionStateManager data = FactionStateManager.get();
+        FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
 
@@ -237,7 +237,7 @@ public class FactionCommands {
      */
     private static final SuggestionProvider<CommandSourceStack> FACTION_MEMBERS = (context, builder) -> {
         ServerPlayer leader = context.getSource().getPlayerOrException();
-        FactionStateManager data = FactionStateManager.get();
+        FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
         for(UUID memberUUID : leaderFaction.getMembers()) {

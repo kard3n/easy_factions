@@ -1,9 +1,5 @@
 package com.jpreiss.easy_factions.faction;
 
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import com.jpreiss.easy_factions.Config;
 import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.alliance.AllianceStateManager;
@@ -12,50 +8,54 @@ import com.jpreiss.easy_factions.api.events.FactionDisbandEvent;
 import com.jpreiss.easy_factions.api.events.FactionJoinEvent;
 import com.jpreiss.easy_factions.api.events.FactionLeaveEvent;
 import com.mojang.logging.LogUtils;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.loading.FMLPaths;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.io.*;
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
  * Manages the state and business logic of the mod
  */
-public class FactionStateManager {
-    private static final File SAVE_FILE = FMLPaths.GAMEDIR.get().resolve("faction_data.json").toFile();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    public static final int MAX_FACTION_SIZE = Config.maxFactionSize;
+public class FactionStateManager extends SavedData {
 
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String DATA_NAME = "faction_data";
+
+    public static final int MAX_FACTION_SIZE = Config.maxFactionSize;
 
     // In-memory data
     // Map<FactionName, FactionObject>
-    private Map<String, Faction> factions = new HashMap<>();
+    private final Map<String, Faction> factions = new HashMap<>();
+
     // Map<PlayerUUID, FactionName> for fast lookups
-    private Map<UUID, String> playerFactionMap = new HashMap<>();
+    private final Map<UUID, String> playerFactionMap = new HashMap<>();
 
-    // Singleton accessor
-    private static final FactionStateManager INSTANCE = new FactionStateManager();
 
-    public static FactionStateManager get() {
-        return INSTANCE;
+    public static FactionStateManager get(MinecraftServer server) {
+        return server.overworld().getDataStorage()
+                .computeIfAbsent(FactionStateManager::load, FactionStateManager::create, DATA_NAME);
     }
 
-    // Core logic
+    public static FactionStateManager create() {
+        return new FactionStateManager();
+    }
+
 
     /**
      * Creates a new faction
-     * @param name Name of the faction to be created
-     * @param leader Player creating the faction (will be the leader)
-     * @throws RuntimeException If the name is taken or the player is already a member of a faction
      */
-    public void createFaction(String name, ServerPlayer leader) throws RuntimeException{
-        if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID())) throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
+    public void createFaction(String name, ServerPlayer leader) throws RuntimeException {
+        if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID()))
+            throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
         Faction f = new Faction(name, leader.getUUID());
         factions.put(name, f);
         playerFactionMap.put(leader.getUUID(), name);
@@ -64,38 +64,34 @@ public class FactionStateManager {
 
         Utils.refreshCommandTree(leader);
 
-        save();
+        this.setDirty();
     }
 
     /**
      * Invite a player to the faction
-     * @param invitingUser The user inviting
-     * @param invitedUser The user being invited
-     * @return The name of the faction the player was invited to
-     * @throws RuntimeException If the player doesn't exist or the user is not the leader
      */
     public String invitePlayer(ServerPlayer invitingUser, ServerPlayer invitedUser) throws RuntimeException {
         Faction faction = getOwnedFaction(invitingUser.getUUID());
-        if(faction.getMembers().size() >= MAX_FACTION_SIZE) throw new  RuntimeException("Your faction is already full. Please remove members before you invite more.");
+        if (faction.getMembers().size() >= MAX_FACTION_SIZE)
+            throw new RuntimeException("Your faction is already full. Please remove members before you invite more.");
 
         faction.getInvited().add(invitedUser.getUUID());
 
-        save();
+        this.setDirty();
 
         return faction.getName();
     }
 
     /**
      * Accept a faction invite
-     * @param player The player accepting the invite
-     * @param factionName The name of the faction whose invite the player accepts
-     * @throws RuntimeException if the user is already in a faction or hasn't been invited
      */
     public void joinFaction(ServerPlayer player, String factionName) throws RuntimeException {
-        if (playerFactionMap.containsKey(player.getUUID())) throw new RuntimeException("You can't join another faction!");
+        if (playerFactionMap.containsKey(player.getUUID()))
+            throw new RuntimeException("You can't join another faction!");
         Faction f = factions.get(factionName);
-        if (f == null || !f.getInvited().contains(player.getUUID())) throw new RuntimeException("You have not been invited to this faction or it does not exist.");
-        if(f.getMembers().size() >= MAX_FACTION_SIZE) throw new  RuntimeException("This faction is already full.");
+        if (f == null || !f.getInvited().contains(player.getUUID()))
+            throw new RuntimeException("You have not been invited to this faction or it does not exist.");
+        if (f.getMembers().size() >= MAX_FACTION_SIZE) throw new RuntimeException("This faction is already full.");
 
         f.getInvited().remove(player.getUUID());
         f.getMembers().add(player.getUUID());
@@ -105,50 +101,52 @@ public class FactionStateManager {
 
         Utils.refreshCommandTree(player);
 
-        save();
+        this.setDirty();
     }
 
     /**
      * Leave the faction. If the owner leaves it, it is disbanded
-     * @param player The player leaving the faction
-     * @throws RuntimeException if the player doesn't exist
      */
-    public void leaveFaction(ServerPlayer player) throws RuntimeException {
+    public void leaveFaction(ServerPlayer player, MinecraftServer server) throws RuntimeException {
         UUID playerUUID = player.getUUID();
         String factionName = playerFactionMap.get(playerUUID);
+
         if (factionName == null) throw new RuntimeException("You are not in a faction!.");
+
         Faction f = factions.get(factionName);
 
         if (f.getOwner().equals(playerUUID)) {
             MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
-            disbandFaction(factionName);
+            disbandFaction(factionName, server);
         } else {
             f.getMembers().remove(playerUUID);
             playerFactionMap.remove(playerUUID);
 
             MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
-            save();
+            this.setDirty();
         }
         Utils.refreshCommandTree(player);
     }
 
     /**
      * Leave the faction. If the owner leaves it, it is disbanded
-     * @param leader The person executing this
+     *
+     * @param leader     The person executing this
      * @param targetName Name of the player being kicked
      * @throws RuntimeException if the player doesn't exist
      */
     public void kickFromFaction(ServerPlayer leader, String targetName, MinecraftServer server) throws RuntimeException {
-        if (leader.getName().getString().equals(targetName)) throw new RuntimeException("You can't kick yourself from the faction!");
+        if (leader.getName().getString().equals(targetName))
+            throw new RuntimeException("You can't kick yourself from the faction!");
 
         // Look up UUID of the player, in case they are offline
         UUID playerUUID = Utils.getPlayerUUIDOffline(targetName, server);
 
         String targetFactionName = playerFactionMap.get(playerUUID);
-
         Faction leaderFaction = getOwnedFaction(leader.getUUID());
 
-        if (targetFactionName == null || !targetFactionName.equals(leaderFaction.getName())) throw new RuntimeException("The player is not in your faction.");
+        if (targetFactionName == null || !targetFactionName.equals(leaderFaction.getName()))
+            throw new RuntimeException("The player is not in your faction.");
 
         leaderFaction.getMembers().remove(playerUUID);
         playerFactionMap.remove(playerUUID);
@@ -156,21 +154,21 @@ public class FactionStateManager {
         MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(leaderFaction.getName(), playerUUID));
 
         // Notify the player and refresh his command tree if he's online
-        ServerPlayer targetOnline =server.getPlayerList().getPlayer(playerUUID);
+        ServerPlayer targetOnline = server.getPlayerList().getPlayer(playerUUID);
         if (targetOnline != null) {
             Utils.refreshCommandTree(targetOnline);
             targetOnline.sendSystemMessage(Component.literal("You were kicked from the faction."));
         }
 
-
-        save();
+        this.setDirty();
     }
 
     /**
      * Disband faction
+     *
      * @param name The faction to disband
      */
-    public void disbandFaction(String name) {
+    public void disbandFaction(String name, MinecraftServer server) {
         Faction faction = factions.get(name);
         if (faction == null) return;
 
@@ -180,16 +178,16 @@ public class FactionStateManager {
         }
 
         // Remove this faction from its alliance
-        try{
-            AllianceStateManager.get().forceLeaveAlliance(faction);
+        try {
+            AllianceStateManager.get(server).forceLeaveAlliance(faction);
         }
-        catch (Exception ignored){}
+        catch (Exception ignored) {}
 
         factions.remove(name);
 
         MinecraftForge.EVENT_BUS.post(new FactionDisbandEvent(faction));
 
-        save();
+        this.setDirty();
     }
 
     /**
@@ -200,10 +198,8 @@ public class FactionStateManager {
      */
     public void setFriendlyFire(ServerPlayer requestingUser, boolean state) throws RuntimeException {
         Faction faction = getOwnedFaction(requestingUser.getUUID());
-
         faction.setFriendlyFire(state);
-
-        save();
+        this.setDirty();
     }
 
     public Faction getFactionByPlayer(UUID player) {
@@ -220,7 +216,7 @@ public class FactionStateManager {
         return (playerFaction != null && playerFaction.getOwner().equals(player));
     }
 
-    public boolean factionExists(String factionName){
+    public boolean factionExists(String factionName) {
         return factions.get(factionName) != null;
     }
 
@@ -252,40 +248,80 @@ public class FactionStateManager {
 
 
     /**
-     * Loads the data from the file
+     * Loads the data from NBT
      */
-    public void load() {
-        if (!SAVE_FILE.exists()) {
-            this.factions = new HashMap<>();
-            this.playerFactionMap = new HashMap<>();
-            return;
-        }
+    public static FactionStateManager load(CompoundTag tag) {
+        FactionStateManager data = new FactionStateManager();
 
-        try (Reader reader = new FileReader(SAVE_FILE)) {
-            Type type = new TypeToken<Map<String, Faction>>() {}.getType();
-            Map<String, Faction> loadedData = GSON.fromJson(reader, type);
+        if (tag.contains("Factions", Tag.TAG_LIST)) {
+            ListTag list = tag.getList("Factions", Tag.TAG_COMPOUND);
 
-            if (loadedData != null) {
-                this.factions = loadedData;
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag fTag = list.getCompound(i);
 
-                // Rebuild lookup map
-                this.playerFactionMap.clear();
-                for (Faction f : factions.values()) {
-                    for (UUID member : f.getMembers()) {
-                        playerFactionMap.put(member, f.getName());
-                    }
+                String name = fTag.getString("Name");
+                UUID owner = fTag.getUUID("Owner");
+                boolean friendlyFire = fTag.getBoolean("FriendlyFire");
+
+                // Reconstruct Faction object
+                Faction f = new Faction(name, owner);
+                f.setFriendlyFire(friendlyFire); // Assuming setter exists
+
+                // Load Members
+                ListTag membersTag = fTag.getList("Members", Tag.TAG_INT_ARRAY); // UUIDs are saved as IntArrays in NBT
+                for (int m = 0; m < membersTag.size(); m++) {
+                    f.getMembers().add(NbtUtils.loadUUID(membersTag.get(m)));
+                }
+
+                // Load Invites
+                ListTag invitedTag = fTag.getList("Invited", Tag.TAG_INT_ARRAY);
+                for (int inv = 0; inv < invitedTag.size(); inv++) {
+                    f.getInvited().add(NbtUtils.loadUUID(invitedTag.get(inv)));
+                }
+
+                // Populate Maps
+                data.factions.put(name, f);
+                for (UUID member : f.getMembers()) {
+                    data.playerFactionMap.put(member, name);
                 }
             }
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage());
         }
+
+        return data;
     }
 
-    public void save() {
-        try (Writer writer = new FileWriter(SAVE_FILE)) {
-            GSON.toJson(factions, writer);
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage());
+    /**
+     * Saves the data to NBT
+     */
+    @Override
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
+        ListTag list = new ListTag();
+
+        for (Faction f : factions.values()) {
+            CompoundTag fTag = new CompoundTag();
+
+            fTag.putString("Name", f.getName());
+            fTag.putUUID("Owner", f.getOwner());
+            fTag.putBoolean("FriendlyFire", f.isFriendlyFire()); // Assuming getter exists
+
+            // Save Members
+            ListTag membersTag = new ListTag();
+            for (UUID member : f.getMembers()) {
+                membersTag.add(NbtUtils.createUUID(member));
+            }
+            fTag.put("Members", membersTag);
+
+            // Save Invites
+            ListTag invitedTag = new ListTag();
+            for (UUID invited : f.getInvited()) {
+                invitedTag.add(NbtUtils.createUUID(invited));
+            }
+            fTag.put("Invited", invitedTag);
+
+            list.add(fTag);
         }
+
+        tag.put("Factions", list);
+        return tag;
     }
 }

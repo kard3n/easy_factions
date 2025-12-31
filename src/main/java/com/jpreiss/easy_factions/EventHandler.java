@@ -18,6 +18,7 @@ public class EventHandler {
 
     /**
      * Prevents damage when friendly fire is enabled
+     *
      * @param event The damage event
      */
     @SubscribeEvent
@@ -25,7 +26,9 @@ public class EventHandler {
         UUID attackerUUID = getPlayerOrOwnerUUID(event.getSource().getEntity());
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 
-        FactionStateManager factionStateManager = FactionStateManager.get();
+
+        if (event.getEntity().getServer() == null) return;
+        FactionStateManager factionStateManager = FactionStateManager.get(event.getEntity().getServer());
         Faction victimFac = factionStateManager.getFactionByPlayer(victimUUID);
         Faction attackerFac = factionStateManager.getFactionByPlayer(attackerUUID);
 
@@ -38,7 +41,9 @@ public class EventHandler {
             return;
         }
 
-        AllianceStateManager allianceStateManager = AllianceStateManager.get();
+        if (event.getEntity().getServer() == null) return;
+
+        AllianceStateManager allianceStateManager = AllianceStateManager.get(event.getEntity().getServer());
         Alliance attackerAlliance = allianceStateManager.getAllianceByFaction(attackerFac.getName());
         Alliance victimAlliance = allianceStateManager.getAllianceByFaction(victimFac.getName());
 
@@ -51,6 +56,7 @@ public class EventHandler {
 
     /**
      * Method to get the UUID of the player, or if it's a pet of its owner
+     *
      * @param entity The entity to check
      * @return If player its UUID, if a pet the UUID of its owner
      */
