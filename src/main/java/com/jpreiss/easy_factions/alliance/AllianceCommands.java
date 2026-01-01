@@ -50,7 +50,7 @@ public class AllianceCommands {
                             }
                         })
                         .then(Commands.argument("target", StringArgumentType.greedyString())
-                                .suggests(UNINVITED_ALLIANCES)
+                                .suggests(UNINVITED_FACTIONS)
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     String target = StringArgumentType.getString(context, "target");
@@ -175,7 +175,7 @@ public class AllianceCommands {
     /**
      * Suggests all uninvited factions
      */
-    private static final SuggestionProvider<CommandSourceStack> UNINVITED_ALLIANCES = (context, builder) -> {
+    private static final SuggestionProvider<CommandSourceStack> UNINVITED_FACTIONS = (context, builder) -> {
         ServerPlayer leader = context.getSource().getPlayerOrException();
         AllianceStateManager allianceManager = AllianceStateManager.get(context.getSource().getServer());
         FactionStateManager factionManager = FactionStateManager.get(context.getSource().getServer());
@@ -186,10 +186,10 @@ public class AllianceCommands {
         if (alliance == null) return builder.buildFuture();
 
 
-        for (String allianceName : allianceManager.getAllianceNames()) {
-            if (alliance.getMembers().contains(allianceName)) continue;
+        for (String factionName : factionManager.getAllFactionNames(context.getSource().getServer())) {
+            if (alliance.getMembers().contains(factionName)) continue;
 
-            builder.suggest(allianceName);
+            builder.suggest(factionName);
         }
         return builder.buildFuture();
     };

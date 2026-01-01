@@ -246,6 +246,13 @@ public class FactionStateManager extends SavedData {
         return playerFaction;
     }
 
+    /**
+     * Return all alliance names
+     */
+    public Set<String> getAllFactionNames(MinecraftServer server) {
+        return factions.keySet();
+    }
+
 
     /**
      * Loads the data from NBT
