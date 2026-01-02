@@ -1,46 +1,59 @@
+# ⚔️ Easy Factions
 
-Source installation information for modders
--------------------------------------------
-This code follows the Minecraft Forge installation methodology. It will apply
-some small patches to the vanilla MCP source code, giving you and it access 
-to some of the data and functions you need to build a successful mod.
+> **Player Alliances Made Easy**
+> Create factions, manage ranks, and forge alliances without the headache.
 
-Note also that the patches are built against "un-renamed" MCP source code (aka
-SRG Names) - this means that you will not be able to read them directly against
-normal code.
+**Easy Factions** is a lightweight Minecraft mod designed to streamline the clan experience. Whether you are running a casual SMP or a competitive PvP server, this mod allows players to easily organize into teams and forge alliances, ensuring that the only people you hit are your enemies.
 
-Setup Process:
-==============================
+---
 
-Step 1: Open your command-line and browse to the folder where you extracted the zip file.
+## ✨ Key Features
 
-Step 2: You're left with a choice.
-If you prefer to use Eclipse:
-1. Run the following command: `./gradlew genEclipseRuns`
-2. Open Eclipse, Import > Existing Gradle Project > Select Folder 
-   or run `gradlew eclipse` to generate the project.
+### 👥 Create & Conquer
+Start your own faction in seconds. Inviting and managing members is easy and intuitive
 
-If you prefer to use IntelliJ:
-1. Open IDEA, and import project.
-2. Select your build.gradle file and have it import.
-3. Run the following command: `./gradlew genIntellijRuns`
-4. Refresh the Gradle Project in IDEA if required.
+### 🛡️ Friendly Fire
+Toggle **Friendly Fire** on or off for your faction. No more accidental sword swings hitting your teammates during a raid!
+-> Can be disabled via configuration.
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can 
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-(this does not affect your code) and then start the process again.
+### 🤝 Strategic Alliances
+War is better with friends. Forge alliances with other factions to coordinate attacks.
+* **Synchronized PvP:** You can fight alongside allied factions without accidental friendly fire!
 
-Mapping Names:
-=============================
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license, if you do not agree with it you can change your mapping names to other crowdsourced names in your 
-build.gradle. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/MinecraftForge/MCPConfig/blob/master/Mojang.md
+### 👮 Rank Management
+Delegate authority to keep your faction running smoothly.
+* **Officers:** Promote trusted members to **Officer** status.
+* **Permissions:** Officers have the power to invite new recruits or kick trouble-makers.
 
-Additional Resources: 
-=========================
-Community Documentation: https://docs.minecraftforge.net/en/1.20.1/gettingstarted/
-LexManos' Install Video: https://youtu.be/8VEdtQLuLO0
-Forge Forums: https://forums.minecraftforge.net/
-Forge Discord: https://discord.minecraftforge.net/
+---
+
+## 💻 Commands
+
+**Faction commands:**
+| Command | Description |
+| :--- | :--- |
+| `/faction create <name>` | Create a new faction. |
+| `/faction invite <player>` | Invite a player to your faction. |
+| `/faction join <name>` | Accept an invitation to join a faction. |
+| `/faction leave` | Leave your current faction. If the owner leaves, the faction is abandoned |
+| `/faction addOfficer <player>` | Promote a member to Officer. |
+| `/faction kick <player>` | Kick a member (Officers/Leader only). |
+
+**Alliance commands:**
+Can only be executed by the owner of a faction.
+| Command | Description |
+| :--- | :--- |
+| `/alliance create <name>` | Create a new alliance with the given name |
+| `/alliance leave` | Leave your current alliance. Restricted to the faction owner |
+| `/alliance invite <factionName>` | Invite a new faction to the alliance |
+| `/alliance join <factionName>` | Accept an invitation to an alliance |
+---
+
+## 🔧 Configuration
+Server owners can tweak **Easy Factions** to fit their gameplay style via the config file.
+
+| Option | Description |
+| :--- | :--- |
+| `"maxFactionSize` | Sets the maximum number of players allowed in one faction. |
+| `maxAllianceSize` | Limits how many factions an alliance can contain. |
+| `forceFriendlyFire` | If set to `true`, friendly fire will be enabled for all factions |
