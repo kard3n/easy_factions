@@ -8,6 +8,7 @@ public class Faction {
     private String name;
     private UUID owner;
     private Set<UUID> members = new HashSet<>();
+    private Set<UUID> officers = new HashSet<>();
     private Set<UUID> invited = new HashSet<>();
     private boolean friendlyFire = false;
 
@@ -59,5 +60,13 @@ public class Faction {
 
     public boolean getFriendlyFire() {
         return friendlyFire;
+    }
+
+    public Set<UUID> getOfficers() {
+        return officers;
+    }
+
+    public void setOfficers(Set<UUID> officers) {
+        this.officers = officers;
     }
 }

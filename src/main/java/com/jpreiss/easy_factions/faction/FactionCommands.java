@@ -45,7 +45,7 @@ public class FactionCommands {
                 .then(Commands.literal("invite")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
@@ -114,7 +114,7 @@ public class FactionCommands {
                 .then(Commands.literal("kick")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
@@ -138,7 +138,7 @@ public class FactionCommands {
                 .then(Commands.literal("friendlyFire")
                         .requires(source -> {
                             try {
-                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                                return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
                             }
@@ -185,6 +185,50 @@ public class FactionCommands {
 
                             return 1;
                         }))
+                .then(Commands.literal("addOfficer")
+                        .requires(source -> {
+                            try {
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("member", StringArgumentType.word()).suggests(FACTION_MEMBERS_NON_OFFICER)
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    String targetName = StringArgumentType.getString(context, "member");
+                                    FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+
+                                    try {
+                                        data.addOfficer(targetName, player, context.getSource().getServer());
+                                        context.getSource().sendSuccess(() -> Component.literal("Added " + targetName + "as officer."), false);
+                                    } catch (RuntimeException e) {
+                                        context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                    }
+                                    return 1;
+                                })))
+                .then(Commands.literal("removeOfficer")
+                        .requires(source -> {
+                            try {
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("member", StringArgumentType.word()).suggests(FACTION_OFFICERS)
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    String targetName = StringArgumentType.getString(context, "member");
+                                    FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+
+                                    try {
+                                        data.removeOfficer(targetName, player, context.getSource().getServer());
+                                        context.getSource().sendSuccess(() -> Component.literal("Demoted " + targetName), false);
+                                    } catch (RuntimeException e) {
+                                        context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                    }
+                                    return 1;
+                                })))
 
         );
     }
@@ -242,6 +286,41 @@ public class FactionCommands {
 
         for(UUID memberUUID : leaderFaction.getMembers()) {
             if (memberUUID.equals(leader.getUUID())) continue;
+
+            builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
+        }
+
+        return builder.buildFuture();
+    };
+
+    /**
+     * Suggests all players that are inside the faction of the leader, except its leader and officer
+     */
+    private static final SuggestionProvider<CommandSourceStack> FACTION_MEMBERS_NON_OFFICER = (context, builder) -> {
+        ServerPlayer leader = context.getSource().getPlayerOrException();
+        FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+        Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
+
+        for(UUID memberUUID : leaderFaction.getMembers()) {
+            if (memberUUID.equals(leader.getUUID())) continue;
+            if(leaderFaction.getOfficers().contains(memberUUID)) continue;
+
+            builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
+        }
+
+        return builder.buildFuture();
+    };
+
+    /**
+     * Suggests all officers
+     */
+    private static final SuggestionProvider<CommandSourceStack> FACTION_OFFICERS = (context, builder) -> {
+        ServerPlayer leader = context.getSource().getPlayerOrException();
+        FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+        Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
+
+        for(UUID memberUUID : leaderFaction.getMembers()) {
+            if(!leaderFaction.getOfficers().contains(memberUUID)) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }
