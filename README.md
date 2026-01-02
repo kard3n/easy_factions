@@ -1,9 +1,9 @@
 # ⚔️ Easy Factions
 
 > **Player Alliances Made Easy**
-> Create factions, manage ranks, and forge alliances without the headache.
+> Create factions, manage ranks, and forge alliances with ease.
 
-**Easy Factions** is a lightweight Minecraft mod designed to streamline the clan experience. Whether you are running a casual SMP or a competitive PvP server, this mod allows players to easily organize into teams and forge alliances, ensuring that the only people you hit are your enemies.
+**Easy Factions** is a lightweight Minecraft mod designed to streamline the clan experience. Whether you are running a casual SMP or a competitive PvP server, this mod allows players to easily organize into teams and forge alliances.
 
 ---
 
