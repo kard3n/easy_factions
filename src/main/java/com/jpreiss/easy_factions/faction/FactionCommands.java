@@ -282,12 +282,12 @@ public class FactionCommands {
      * Suggests all players that are inside the faction of the leader, except its leader
      */
     private static final SuggestionProvider<CommandSourceStack> FACTION_MEMBERS = (context, builder) -> {
-        ServerPlayer leader = context.getSource().getPlayerOrException();
+        ServerPlayer executingUser = context.getSource().getPlayerOrException();
         FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
-        Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
+        Faction faction = data.getFactionByPlayer(executingUser.getUUID());
 
-        for (UUID memberUUID : leaderFaction.getMembers()) {
-            if (memberUUID.equals(leader.getUUID())) continue;
+        for (UUID memberUUID : faction.getMembers()) {
+            if (memberUUID.equals(faction.getOwner())) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }
@@ -299,13 +299,13 @@ public class FactionCommands {
      * Suggests all players that are inside the faction of the leader, except its leader and officer
      */
     private static final SuggestionProvider<CommandSourceStack> FACTION_MEMBERS_NON_OFFICER = (context, builder) -> {
-        ServerPlayer leader = context.getSource().getPlayerOrException();
+        ServerPlayer executingUser = context.getSource().getPlayerOrException();
         FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
-        Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
+        Faction faction = data.getFactionByPlayer(executingUser.getUUID());
 
-        for (UUID memberUUID : leaderFaction.getMembers()) {
-            if (memberUUID.equals(leader.getUUID())) continue;
-            if (leaderFaction.getOfficers().contains(memberUUID)) continue;
+        for (UUID memberUUID : faction.getMembers()) {
+            if (memberUUID.equals(faction.getOwner())) continue;
+            if (faction.getOfficers().contains(memberUUID)) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }
