@@ -23,6 +23,7 @@ public class EventHandler {
      */
     @SubscribeEvent
     public static void preventFriendlyFire(LivingAttackEvent event) {
+        if(Config.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
         UUID attackerUUID = getPlayerOrOwnerUUID(event.getSource().getEntity());
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 

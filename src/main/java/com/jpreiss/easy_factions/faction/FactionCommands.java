@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.faction;
 
+import com.jpreiss.easy_factions.Config;
 import com.jpreiss.easy_factions.Utils;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -138,6 +139,7 @@ public class FactionCommands {
                 .then(Commands.literal("friendlyFire")
                         .requires(source -> {
                             try {
+                                if (Config.forceFriendlyFire) return false;
                                 return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
@@ -177,7 +179,7 @@ public class FactionCommands {
                             } else {
                                 StringBuilder builder = new StringBuilder();
                                 builder.append("You are a member of \"").append(playerFaction.getName()).append("\"\nYour members are: ");
-                                for(UUID member : playerFaction.getMembers()) {
+                                for (UUID member : playerFaction.getMembers()) {
                                     builder.append(Utils.getPlayerNameOffline(member, context.getSource().getServer())).append(" ");
                                 }
                                 context.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
@@ -284,7 +286,7 @@ public class FactionCommands {
         FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
-        for(UUID memberUUID : leaderFaction.getMembers()) {
+        for (UUID memberUUID : leaderFaction.getMembers()) {
             if (memberUUID.equals(leader.getUUID())) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
@@ -301,9 +303,9 @@ public class FactionCommands {
         FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
-        for(UUID memberUUID : leaderFaction.getMembers()) {
+        for (UUID memberUUID : leaderFaction.getMembers()) {
             if (memberUUID.equals(leader.getUUID())) continue;
-            if(leaderFaction.getOfficers().contains(memberUUID)) continue;
+            if (leaderFaction.getOfficers().contains(memberUUID)) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }
@@ -319,8 +321,8 @@ public class FactionCommands {
         FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
         Faction leaderFaction = data.getFactionByPlayer(leader.getUUID());
 
-        for(UUID memberUUID : leaderFaction.getMembers()) {
-            if(!leaderFaction.getOfficers().contains(memberUUID)) continue;
+        for (UUID memberUUID : leaderFaction.getMembers()) {
+            if (!leaderFaction.getOfficers().contains(memberUUID)) continue;
 
             builder.suggest(Utils.getPlayerNameOffline(memberUUID, context.getSource().getServer()));
         }

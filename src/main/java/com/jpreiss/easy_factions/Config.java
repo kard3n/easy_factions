@@ -18,16 +18,22 @@ public class Config
             .comment("The maximum amount of members a faction can have.")
             .defineInRange("maxAllianceSize", 10, 1, Integer.MAX_VALUE);
 
+    private static final ForgeConfigSpec.BooleanValue FORCE_FRIENDLY_FIRE = BUILDER
+            .comment("Enables friendly fire, overwriting faction settings.")
+            .define("forceFriendlyFire", false);
+
 
     static final ForgeConfigSpec SPEC = BUILDER.build();
 
     public static int maxAllianceSize;
     public static int maxFactionSize;
+    public static boolean forceFriendlyFire;
 
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event)
     {
         maxAllianceSize = MAX_ALLIANCE_SIZE.get();
         maxFactionSize = MAX_FACTION_SIZE.get();
+        forceFriendlyFire = FORCE_FRIENDLY_FIRE.get();
     }
 }
