@@ -1,15 +1,16 @@
 package com.jpreiss.easy_factions.api.events;
 
+import com.jpreiss.easy_factions.alliance.Alliance;
 import net.minecraftforge.eventbus.api.Event;
 
 public class AllianceDisbandEvent extends Event {
-    private final String allianceName;
+    private final Alliance alliance;
 
-    public AllianceDisbandEvent(String allianceName) {
-        this.allianceName = allianceName;
+    public AllianceDisbandEvent(Alliance alliance) {
+        this.alliance = alliance;
     }
 
-    public String getAllianceName() {
-        return allianceName;
+    public Alliance getAlliance() {
+        return alliance;
     }
 }

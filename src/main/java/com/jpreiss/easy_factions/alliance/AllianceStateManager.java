@@ -176,7 +176,7 @@ public class AllianceStateManager extends SavedData {
 
         alliances.remove(alliance.getName());
 
-        MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance.getName()));
+        MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance));
 
         this.setDirty();
     }
