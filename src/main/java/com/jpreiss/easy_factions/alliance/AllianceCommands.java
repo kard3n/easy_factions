@@ -32,7 +32,7 @@ public class AllianceCommands {
 
                                     try {
                                         manager.createAlliance(name, player, context.getSource().getServer());
-                                        context.getSource().sendSuccess(() -> Component.literal("Alliance \"" + name + "\" created!"), true);
+                                        context.getSource().sendSuccess(() -> Component.literal("Alliance \"" + name + "\" created!"), false);
                                     } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
@@ -58,7 +58,7 @@ public class AllianceCommands {
 
                                     try {
                                         manager.inviteFaction(player, target, context.getSource().getServer());
-                                        context.getSource().sendSuccess(() -> Component.literal("Invited \"" + target + "\"."), true);
+                                        context.getSource().sendSuccess(() -> Component.literal("Invited \"" + target + "\"."), false);
                                     } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
@@ -83,7 +83,7 @@ public class AllianceCommands {
 
                                     try {
                                         manager.joinAlliance(player, name, context.getSource().getServer());
-                                        context.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), true);
+                                        context.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), false);
                                     } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
@@ -107,7 +107,7 @@ public class AllianceCommands {
 
                             try {
                                 manager.leaveAlliance(player, context.getSource().getServer());
-                                context.getSource().sendSuccess(() -> Component.literal("Your faction has left the alliance."), true);
+                                context.getSource().sendSuccess(() -> Component.literal("Your faction has left the alliance."), false);
                             } catch (RuntimeException e) {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -129,14 +129,14 @@ public class AllianceCommands {
                             Faction playerFaction = FactionStateManager.get(context.getSource().getServer()).getFactionByPlayer(player.getUUID());
 
                             if (playerFaction == null) {
-                                context.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), true);
+                                context.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), false);
                                 return 1;
                             }
 
                             Alliance alliance = manager.getAllianceByFaction(playerFaction.getName());
 
                             if (alliance == null) {
-                                context.getSource().sendSuccess(() -> Component.literal("Your faction is not in an alliance."), true);
+                                context.getSource().sendSuccess(() -> Component.literal("Your faction is not in an alliance."), false);
                                 return 1;
                             }
 
@@ -146,7 +146,7 @@ public class AllianceCommands {
                                 builder.append(member).append("\n");
                             }
 
-                            context.getSource().sendSuccess(() -> Component.literal(builder.toString()), true);
+                            context.getSource().sendSuccess(() -> Component.literal(builder.toString()), false);
 
                             return 1;
                         }))
