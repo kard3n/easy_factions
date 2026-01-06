@@ -2,17 +2,21 @@ package com.jpreiss.easy_factions;
 
 import com.jpreiss.easy_factions.alliance.AllianceCommands;
 import com.jpreiss.easy_factions.faction.FactionCommands;
+import com.jpreiss.easy_factions.network.NetworkHandler;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.IExtensionPoint;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.network.NetworkConstants;
 //import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -28,16 +32,22 @@ public class EasyFactions
     {
         IEventBus modEventBus = context.getModEventBus();
 
+        // Forge ignores displaytest from mods.toml when SimpleChannel is used.
+        // Therefore, manually...
+        ModLoadingContext.get().registerExtensionPoint(IExtensionPoint.DisplayTest.class,
+                () -> new IExtensionPoint.DisplayTest(
+                        () -> NetworkConstants.IGNORESERVERONLY,
+                        (remoteVersion, isNetwork) -> true
+                )
+        );
+
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
-
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
-
-
-        // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
+        // Register our mod's ForgeConfigSpec
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
@@ -45,6 +55,7 @@ public class EasyFactions
     {
         // Some common setup code
         //LOGGER.info("");
+        NetworkHandler.register();
     }
 
 

@@ -4,13 +4,18 @@ import com.jpreiss.easy_factions.alliance.Alliance;
 import com.jpreiss.easy_factions.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.faction.Faction;
 import com.jpreiss.easy_factions.faction.FactionStateManager;
+import com.jpreiss.easy_factions.network.NetworkHandler;
+import com.jpreiss.easy_factions.network.NetworkManager;
+import com.jpreiss.easy_factions.network.PacketSyncFaction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber
@@ -23,7 +28,7 @@ public class EventHandler {
      */
     @SubscribeEvent
     public static void preventFriendlyFire(LivingAttackEvent event) {
-        if(Config.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
+        if (Config.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
         UUID attackerUUID = getPlayerOrOwnerUUID(event.getSource().getEntity());
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 
@@ -52,6 +57,18 @@ public class EventHandler {
 
         if (attackerAlliance == victimAlliance && (!attackerFac.getFriendlyFire() || !victimFac.getFriendlyFire())) {
             event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            Map<UUID, String> playerFactions = FactionStateManager.get(event.getEntity().getServer()).getPlayerFactionMap();
+            Map<String, String> factionAlliances = AllianceStateManager.get(event.getEntity().getServer()).getFactionAllianceMap();
+
+            PacketSyncFaction packet = new PacketSyncFaction(playerFactions, factionAlliances);
+
+            NetworkHandler.sendToPlayer(packet, player);
         }
     }
 

@@ -7,7 +7,7 @@ import com.jpreiss.easy_factions.api.events.FactionCreateEvent;
 import com.jpreiss.easy_factions.api.events.FactionDisbandEvent;
 import com.jpreiss.easy_factions.api.events.FactionJoinEvent;
 import com.jpreiss.easy_factions.api.events.FactionLeaveEvent;
-import com.mojang.logging.LogUtils;
+import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -18,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import java.util.*;
 
@@ -26,8 +25,6 @@ import java.util.*;
  * Manages the state and business logic of the mod
  */
 public class FactionStateManager extends SavedData {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final String DATA_NAME = "faction_data";
 
     public static final int MAX_FACTION_SIZE = Config.maxFactionSize;
@@ -53,7 +50,7 @@ public class FactionStateManager extends SavedData {
     /**
      * Creates a new faction
      */
-    public void createFaction(String name, ServerPlayer leader) throws RuntimeException {
+    public void createFaction(String name, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
         if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID()))
             throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
         Faction f = new Faction(name, leader.getUUID());
@@ -63,6 +60,7 @@ public class FactionStateManager extends SavedData {
         MinecraftForge.EVENT_BUS.post(new FactionCreateEvent(name, leader));
 
         Utils.refreshCommandTree(leader);
+        NetworkManager.broadcastUpdate(server);
 
         this.setDirty();
     }
@@ -85,7 +83,7 @@ public class FactionStateManager extends SavedData {
     /**
      * Accept a faction invite
      */
-    public void joinFaction(ServerPlayer player, String factionName) throws RuntimeException {
+    public void joinFaction(ServerPlayer player, String factionName, MinecraftServer server) throws RuntimeException {
         if (playerFactionMap.containsKey(player.getUUID()))
             throw new RuntimeException("You can't join another faction!");
         Faction f = factions.get(factionName);
@@ -100,6 +98,7 @@ public class FactionStateManager extends SavedData {
         MinecraftForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
 
         Utils.refreshCommandTree(player);
+        NetworkManager.broadcastUpdate(server);
 
         this.setDirty();
     }
@@ -122,6 +121,7 @@ public class FactionStateManager extends SavedData {
             forceRemoveMember(f, playerUUID);
         }
         Utils.refreshCommandTree(player);
+        NetworkManager.broadcastUpdate(server);
     }
 
     /**
@@ -163,6 +163,7 @@ public class FactionStateManager extends SavedData {
             Utils.refreshCommandTree(targetOnline);
             targetOnline.sendSystemMessage(Component.literal("You were kicked from the faction."));
         }
+        NetworkManager.broadcastUpdate(server);
     }
 
     /**
@@ -193,7 +194,7 @@ public class FactionStateManager extends SavedData {
 
         // Remove this faction from its alliance
         try {
-            AllianceStateManager.get(server).forceLeaveAlliance(faction);
+            AllianceStateManager.get(server).forceLeaveAlliance(faction, server);
         } catch (Exception ignored) {
         }
 
@@ -201,6 +202,7 @@ public class FactionStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new FactionDisbandEvent(faction));
 
+        NetworkManager.broadcastUpdate(server);
         this.setDirty();
     }
 
@@ -327,10 +329,13 @@ public class FactionStateManager extends SavedData {
     /**
      * Return all alliance names
      */
-    public Set<String> getAllFactionNames(MinecraftServer server) {
+    public Set<String> getAllFactionNames() {
         return factions.keySet();
     }
 
+    public Map<UUID, String> getPlayerFactionMap() {
+        return Collections.unmodifiableMap(playerFactionMap);
+    }
 
     /**
      * Loads the data from NBT

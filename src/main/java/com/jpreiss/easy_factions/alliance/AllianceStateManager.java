@@ -8,17 +8,16 @@ import com.jpreiss.easy_factions.api.events.AllianceJoinEvent;
 import com.jpreiss.easy_factions.api.events.AllianceLeaveEvent;
 import com.jpreiss.easy_factions.faction.Faction;
 import com.jpreiss.easy_factions.faction.FactionStateManager;
-import com.mojang.logging.LogUtils;
+import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
-import org.slf4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -26,7 +25,6 @@ import java.util.*;
  * Manages the state and business logic of the mod
  */
 public class AllianceStateManager extends SavedData {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final String DATA_NAME = "faction_alliance_data";
 
     public static final int MAX_ALLIANCE_SIZE = Config.maxAllianceSize;
@@ -50,6 +48,7 @@ public class AllianceStateManager extends SavedData {
 
     /**
      * Creates a new alliance
+     *
      * @param name    Name of the alliance to be created
      * @param creator Player creating the alliance
      * @throws RuntimeException If the name is taken or the player is not owner of a faction or the max faction size has been reached
@@ -68,12 +67,14 @@ public class AllianceStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
         Utils.refreshCommandTree(creator);
+        NetworkManager.broadcastUpdate(server);
 
         this.setDirty();
     }
 
     /**
      * Invite a faction to the faction
+     *
      * @param invitingUser       The user inviting
      * @param invitedFactionName The name of the faction being invited
      * @throws RuntimeException If the player doesn't exist or the user is not the leader
@@ -123,6 +124,7 @@ public class AllianceStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
+        NetworkManager.broadcastUpdate(server);
 
         this.setDirty();
     }
@@ -136,7 +138,7 @@ public class AllianceStateManager extends SavedData {
     public void leaveAlliance(ServerPlayer player, MinecraftServer server) throws RuntimeException {
         Faction playerFaction = FactionStateManager.get(server).getOwnedFaction(player.getUUID());
 
-        forceLeaveAlliance(playerFaction);
+        forceLeaveAlliance(playerFaction, server);
         Utils.refreshCommandTree(player);
     }
 
@@ -146,7 +148,7 @@ public class AllianceStateManager extends SavedData {
      * @param faction The faction to remove from its alliance
      * @throws RuntimeException If: the faction does not exist or is not part of an alliance
      */
-    public void forceLeaveAlliance(Faction faction) throws RuntimeException {
+    public void forceLeaveAlliance(Faction faction, MinecraftServer server) throws RuntimeException {
         String allianceName = factionAllianceMap.get(faction.getName());
         if (allianceName == null) throw new RuntimeException("The faction is not in an alliance.");
 
@@ -156,9 +158,10 @@ public class AllianceStateManager extends SavedData {
 
         // Disband alliance if no members are left
         if (alliance.getMembers().isEmpty()) {
-            disbandAlliance(alliance);
+            disbandAlliance(alliance, server);
         } else {
             this.setDirty();
+            NetworkManager.broadcastUpdate(server);
         }
 
         MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
@@ -169,7 +172,7 @@ public class AllianceStateManager extends SavedData {
      *
      * @param alliance The alliance to disband
      */
-    public void disbandAlliance(Alliance alliance) {
+    public void disbandAlliance(Alliance alliance, MinecraftServer server) {
         for (String factionName : alliance.getMembers()) {
             factionAllianceMap.remove(factionName);
         }
@@ -179,6 +182,7 @@ public class AllianceStateManager extends SavedData {
         MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance));
 
         this.setDirty();
+        NetworkManager.broadcastUpdate(server);
     }
 
     /**
@@ -208,6 +212,10 @@ public class AllianceStateManager extends SavedData {
 
     public Alliance getAlliance(String allianceName) {
         return alliances.get(allianceName);
+    }
+
+    public Map<String, String> getFactionAllianceMap() {
+        return Collections.unmodifiableMap(factionAllianceMap);
     }
 
     /**
@@ -259,7 +267,7 @@ public class AllianceStateManager extends SavedData {
      * Saves the data to NBT
      */
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
         ListTag alliancesList = new ListTag();
 
         for (Alliance alliance : this.alliances.values()) {

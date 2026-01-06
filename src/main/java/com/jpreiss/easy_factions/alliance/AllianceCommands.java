@@ -186,7 +186,7 @@ public class AllianceCommands {
         if (alliance == null) return builder.buildFuture();
 
 
-        for (String factionName : factionManager.getAllFactionNames(context.getSource().getServer())) {
+        for (String factionName : factionManager.getAllFactionNames()) {
             if (alliance.getMembers().contains(factionName)) continue;
 
             builder.suggest(factionName);

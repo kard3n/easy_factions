@@ -34,7 +34,7 @@ public class FactionCommands {
                             FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
-                                data.createFaction(name, player);
+                                data.createFaction(name, player, context.getSource().getServer());
                                 context.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), false);
                             } catch (RuntimeException e) {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
@@ -82,7 +82,7 @@ public class FactionCommands {
                             FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
-                                data.joinFaction(player, name);
+                                data.joinFaction(player, name, context.getSource().getServer());
                                 context.getSource().sendSuccess(() -> Component.literal("Joined \"" + name + "\"!"), false);
                             } catch (RuntimeException e) {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
