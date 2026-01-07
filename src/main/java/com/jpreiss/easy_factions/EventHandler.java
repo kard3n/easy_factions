@@ -4,9 +4,7 @@ import com.jpreiss.easy_factions.alliance.Alliance;
 import com.jpreiss.easy_factions.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.faction.Faction;
 import com.jpreiss.easy_factions.faction.FactionStateManager;
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.NetworkManager;
-import com.jpreiss.easy_factions.network.PacketSyncFaction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.OwnableEntity;
@@ -15,7 +13,6 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.Map;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber
@@ -63,12 +60,15 @@ public class EventHandler {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            Map<UUID, String> playerFactions = FactionStateManager.get(event.getEntity().getServer()).getPlayerFactionMap();
-            Map<String, String> factionAlliances = AllianceStateManager.get(event.getEntity().getServer()).getFactionAllianceMap();
+            NetworkManager.updatePlayerAboutOthers(player, player.getServer());
+            NetworkManager.broadcastPlayerInfo(player, player.getServer());
+        }
+    }
 
-            PacketSyncFaction packet = new PacketSyncFaction(playerFactions, factionAlliances);
-
-            NetworkHandler.sendToPlayer(packet, player);
+    @SubscribeEvent
+    public static void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            NetworkManager.removeSinglePlayerInfo(player.getUUID(), player.getServer());
         }
     }
 

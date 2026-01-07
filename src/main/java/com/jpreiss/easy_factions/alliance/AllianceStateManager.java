@@ -38,8 +38,7 @@ public class AllianceStateManager extends SavedData {
 
 
     public static AllianceStateManager get(MinecraftServer server) {
-        return server.overworld().getDataStorage()
-                .computeIfAbsent(AllianceStateManager::load, AllianceStateManager::create, DATA_NAME);
+        return server.overworld().getDataStorage().computeIfAbsent(AllianceStateManager::load, AllianceStateManager::create, DATA_NAME);
     }
 
     public static AllianceStateManager create() {
@@ -67,7 +66,9 @@ public class AllianceStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
         Utils.refreshCommandTree(creator);
-        NetworkManager.broadcastUpdate(server);
+
+
+        NetworkManager.broadcastFactionUpdate(creatorFaction, server);
 
         this.setDirty();
     }
@@ -124,7 +125,7 @@ public class AllianceStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
-        NetworkManager.broadcastUpdate(server);
+        NetworkManager.broadcastFactionUpdate(playerFaction, server);
 
         this.setDirty();
     }
@@ -161,8 +162,8 @@ public class AllianceStateManager extends SavedData {
             disbandAlliance(alliance, server);
         } else {
             this.setDirty();
-            NetworkManager.broadcastUpdate(server);
         }
+        NetworkManager.broadcastFactionAllianceLeave(faction, server);
 
         MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
     }
@@ -173,16 +174,18 @@ public class AllianceStateManager extends SavedData {
      * @param alliance The alliance to disband
      */
     public void disbandAlliance(Alliance alliance, MinecraftServer server) {
+
+        alliances.remove(alliance.getName());
+
         for (String factionName : alliance.getMembers()) {
             factionAllianceMap.remove(factionName);
         }
 
-        alliances.remove(alliance.getName());
+        NetworkManager.broadcastAllianceDisband(alliance, server);
 
         MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance));
 
         this.setDirty();
-        NetworkManager.broadcastUpdate(server);
     }
 
     /**

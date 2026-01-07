@@ -53,14 +53,14 @@ public class FactionStateManager extends SavedData {
     public void createFaction(String name, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
         if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID()))
             throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
-        Faction f = new Faction(name, leader.getUUID());
-        factions.put(name, f);
+        Faction faction = new Faction(name, leader.getUUID());
+        factions.put(name, faction);
         playerFactionMap.put(leader.getUUID(), name);
 
         MinecraftForge.EVENT_BUS.post(new FactionCreateEvent(name, leader));
 
         Utils.refreshCommandTree(leader);
-        NetworkManager.broadcastUpdate(server);
+        NetworkManager.broadcastFactionUpdate(faction, server);
 
         this.setDirty();
     }
@@ -98,7 +98,7 @@ public class FactionStateManager extends SavedData {
         MinecraftForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
 
         Utils.refreshCommandTree(player);
-        NetworkManager.broadcastUpdate(server);
+        NetworkManager.broadcastPlayerInfo(player, server);
 
         this.setDirty();
     }
@@ -121,7 +121,7 @@ public class FactionStateManager extends SavedData {
             forceRemoveMember(f, playerUUID);
         }
         Utils.refreshCommandTree(player);
-        NetworkManager.broadcastUpdate(server);
+        NetworkManager.broadcastPlayerInfo(player, server);
     }
 
     /**
@@ -162,8 +162,9 @@ public class FactionStateManager extends SavedData {
         if (targetOnline != null) {
             Utils.refreshCommandTree(targetOnline);
             targetOnline.sendSystemMessage(Component.literal("You were kicked from the faction."));
+            NetworkManager.removeSinglePlayerInfo(targetUUID, server);
         }
-        NetworkManager.broadcastUpdate(server);
+
     }
 
     /**
@@ -202,7 +203,7 @@ public class FactionStateManager extends SavedData {
 
         MinecraftForge.EVENT_BUS.post(new FactionDisbandEvent(faction));
 
-        NetworkManager.broadcastUpdate(server);
+        NetworkManager.broadcastFactionDisband(faction, server);
         this.setDirty();
     }
 
@@ -275,6 +276,10 @@ public class FactionStateManager extends SavedData {
     public Faction getFactionByPlayer(UUID player) {
         String name = playerFactionMap.get(player);
         return name != null ? factions.get(name) : null;
+    }
+
+    public Faction getFactionByName(String name) {
+        return factions.get(name);
     }
 
     public boolean playerIsInFaction(UUID player) {
