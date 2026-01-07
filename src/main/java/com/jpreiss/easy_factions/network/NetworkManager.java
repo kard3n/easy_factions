@@ -111,8 +111,10 @@ public class NetworkManager {
             playerFactions.put(player.getUUID(), factionManager.getFactionByPlayer(player.getUUID()).getName());
         }
 
+        Alliance alliance = null;
         for (String factionName : new HashSet<>(playerFactions.values())) {
-            factionAlliances.put(factionName, allianceManager.getAllianceByFaction(factionName).getName());
+            alliance = allianceManager.getAllianceByFaction(factionName);
+            if (alliance != null) factionAlliances.put(factionName, alliance.getName());
         }
 
         return new PacketSyncFaction(playerFactions, factionAlliances);
