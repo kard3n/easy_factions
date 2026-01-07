@@ -54,6 +54,6 @@ Server owners can tweak **Easy Factions** to fit their gameplay style via the co
 
 | Option              | Description                                                      |
 |:--------------------|:-----------------------------------------------------------------|
-| `"maxFactionSize`   | Sets the maximum number of players allowed in one faction.       |
+| `maxFactionSize`    | Sets the maximum number of players allowed in one faction.       |
 | `maxAllianceSize`   | Limits how many factions an alliance can contain.                |
 | `forceFriendlyFire` | If set to `true`, friendly fire will be enabled for all factions |
