@@ -107,8 +107,10 @@ public class NetworkManager {
         Map<String, String> factionAlliances = new HashMap<>();
 
 
+        Faction faction = null;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            playerFactions.put(player.getUUID(), factionManager.getFactionByPlayer(player.getUUID()).getName());
+            faction = factionManager.getFactionByPlayer(player.getUUID());
+            if (faction != null) playerFactions.put(player.getUUID(), faction.getName());
         }
 
         Alliance alliance = null;
