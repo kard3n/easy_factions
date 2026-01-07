@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.network;
 
 import com.jpreiss.easy_factions.EasyFactions;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,8 +15,8 @@ public class NetworkHandler {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(EasyFactions.MODID, "main"),
             () -> PROTOCOL_VERSION,
-            version -> version.equals(PROTOCOL_VERSION) || version.contains("ABSENT") || version.contains("ACCEPTVANILLA"),
-            version -> version.equals(PROTOCOL_VERSION) || version.contains("ABSENT") || version.contains("ACCEPTVANILLA")
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION),
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION)
     );
 
     public static void register() {
