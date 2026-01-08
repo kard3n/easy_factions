@@ -1,6 +1,6 @@
-package com.jpreiss.easy_factions.faction;
+package com.jpreiss.easy_factions.server.faction;
 
-import com.jpreiss.easy_factions.Config;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -139,7 +139,7 @@ public class FactionCommands {
                 .then(Commands.literal("friendlyFire")
                         .requires(source -> {
                             try {
-                                if (Config.forceFriendlyFire) return false;
+                                if (ServerConfig.forceFriendlyFire) return false;
                                 return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;

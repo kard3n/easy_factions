@@ -1,6 +1,6 @@
-package com.jpreiss.easy_factions.api.events;
+package com.jpreiss.easy_factions.server.api.events;
 
-import com.jpreiss.easy_factions.alliance.Alliance;
+import com.jpreiss.easy_factions.server.alliance.Alliance;
 import net.minecraftforge.eventbus.api.Event;
 
 public class AllianceDisbandEvent extends Event {

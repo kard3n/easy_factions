@@ -1,4 +1,4 @@
-package com.jpreiss.easy_factions.alliance;
+package com.jpreiss.easy_factions.server.alliance;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -1,9 +1,9 @@
-package com.jpreiss.easy_factions;
+package com.jpreiss.easy_factions.server;
 
-import com.jpreiss.easy_factions.alliance.Alliance;
-import com.jpreiss.easy_factions.alliance.AllianceStateManager;
-import com.jpreiss.easy_factions.faction.Faction;
-import com.jpreiss.easy_factions.faction.FactionStateManager;
+import com.jpreiss.easy_factions.server.alliance.Alliance;
+import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
+import com.jpreiss.easy_factions.server.faction.Faction;
+import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -25,7 +25,7 @@ public class EventHandler {
      */
     @SubscribeEvent
     public static void preventFriendlyFire(LivingAttackEvent event) {
-        if (Config.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
+        if (ServerConfig.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
         UUID attackerUUID = getPlayerOrOwnerUUID(event.getSource().getEntity());
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 

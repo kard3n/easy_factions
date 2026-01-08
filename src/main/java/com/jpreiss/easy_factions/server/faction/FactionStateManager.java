@@ -1,12 +1,12 @@
-package com.jpreiss.easy_factions.faction;
+package com.jpreiss.easy_factions.server.faction;
 
-import com.jpreiss.easy_factions.Config;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
-import com.jpreiss.easy_factions.alliance.AllianceStateManager;
-import com.jpreiss.easy_factions.api.events.FactionCreateEvent;
-import com.jpreiss.easy_factions.api.events.FactionDisbandEvent;
-import com.jpreiss.easy_factions.api.events.FactionJoinEvent;
-import com.jpreiss.easy_factions.api.events.FactionLeaveEvent;
+import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
+import com.jpreiss.easy_factions.server.api.events.FactionCreateEvent;
+import com.jpreiss.easy_factions.server.api.events.FactionDisbandEvent;
+import com.jpreiss.easy_factions.server.api.events.FactionJoinEvent;
+import com.jpreiss.easy_factions.server.api.events.FactionLeaveEvent;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -27,7 +27,7 @@ import java.util.*;
 public class FactionStateManager extends SavedData {
     private static final String DATA_NAME = "faction_data";
 
-    public static final int MAX_FACTION_SIZE = Config.maxFactionSize;
+    public static final int MAX_FACTION_SIZE = ServerConfig.maxFactionSize;
 
     // In-memory data
     // Map<FactionName, FactionObject>

@@ -1,4 +1,4 @@
-package com.jpreiss.easy_factions.network;
+package com.jpreiss.easy_factions.network.packet;
 
 import com.jpreiss.easy_factions.client.ClientFactionData;
 import net.minecraft.network.FriendlyByteBuf;

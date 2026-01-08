@@ -1,9 +1,12 @@
 package com.jpreiss.easy_factions.network;
 
-import com.jpreiss.easy_factions.alliance.Alliance;
-import com.jpreiss.easy_factions.alliance.AllianceStateManager;
-import com.jpreiss.easy_factions.faction.Faction;
-import com.jpreiss.easy_factions.faction.FactionStateManager;
+import com.jpreiss.easy_factions.network.packet.PacketFactionLeaveAlliance;
+import com.jpreiss.easy_factions.network.packet.PacketRemovePlayerData;
+import com.jpreiss.easy_factions.network.packet.PacketSyncFaction;
+import com.jpreiss.easy_factions.server.alliance.Alliance;
+import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
+import com.jpreiss.easy_factions.server.faction.Faction;
+import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 

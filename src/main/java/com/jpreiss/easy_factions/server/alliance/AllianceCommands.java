@@ -1,7 +1,7 @@
-package com.jpreiss.easy_factions.alliance;
+package com.jpreiss.easy_factions.server.alliance;
 
-import com.jpreiss.easy_factions.faction.Faction;
-import com.jpreiss.easy_factions.faction.FactionStateManager;
+import com.jpreiss.easy_factions.server.faction.Faction;
+import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;

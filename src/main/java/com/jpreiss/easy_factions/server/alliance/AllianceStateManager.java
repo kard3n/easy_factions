@@ -1,13 +1,13 @@
-package com.jpreiss.easy_factions.alliance;
+package com.jpreiss.easy_factions.server.alliance;
 
-import com.jpreiss.easy_factions.Config;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
-import com.jpreiss.easy_factions.api.events.AllianceCreateEvent;
-import com.jpreiss.easy_factions.api.events.AllianceDisbandEvent;
-import com.jpreiss.easy_factions.api.events.AllianceJoinEvent;
-import com.jpreiss.easy_factions.api.events.AllianceLeaveEvent;
-import com.jpreiss.easy_factions.faction.Faction;
-import com.jpreiss.easy_factions.faction.FactionStateManager;
+import com.jpreiss.easy_factions.server.api.events.AllianceCreateEvent;
+import com.jpreiss.easy_factions.server.api.events.AllianceDisbandEvent;
+import com.jpreiss.easy_factions.server.api.events.AllianceJoinEvent;
+import com.jpreiss.easy_factions.server.api.events.AllianceLeaveEvent;
+import com.jpreiss.easy_factions.server.faction.Faction;
+import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -27,7 +27,7 @@ import java.util.*;
 public class AllianceStateManager extends SavedData {
     private static final String DATA_NAME = "faction_alliance_data";
 
-    public static final int MAX_ALLIANCE_SIZE = Config.maxAllianceSize;
+    public static final int MAX_ALLIANCE_SIZE = ServerConfig.maxAllianceSize;
 
     // In-memory data
     // Map<AllianceName, Alliance>

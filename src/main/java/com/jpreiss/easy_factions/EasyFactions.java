@@ -1,7 +1,8 @@
 package com.jpreiss.easy_factions;
 
-import com.jpreiss.easy_factions.alliance.AllianceCommands;
-import com.jpreiss.easy_factions.faction.FactionCommands;
+import com.jpreiss.easy_factions.server.ServerConfig;
+import com.jpreiss.easy_factions.server.alliance.AllianceCommands;
+import com.jpreiss.easy_factions.server.faction.FactionCommands;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -48,7 +49,7 @@ public class EasyFactions
         MinecraftForge.EVENT_BUS.register(this);
 
         // Register our mod's ForgeConfigSpec
-        context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        context.registerConfig(ModConfig.Type.COMMON, ServerConfig.SPEC);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)

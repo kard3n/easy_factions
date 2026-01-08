@@ -1,6 +1,6 @@
-package com.jpreiss.easy_factions.api.events;
+package com.jpreiss.easy_factions.server.api.events;
 
-import com.jpreiss.easy_factions.faction.Faction;
+import com.jpreiss.easy_factions.server.faction.Faction;
 import net.minecraftforge.eventbus.api.Event;
 
 /**
