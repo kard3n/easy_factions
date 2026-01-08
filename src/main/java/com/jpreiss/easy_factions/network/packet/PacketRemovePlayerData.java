@@ -28,7 +28,7 @@ public class PacketRemovePlayerData {
     public static void handle(PacketRemovePlayerData msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             String playerFaction = ClientFactionData.removePlayer(msg.playerUUID);
-            if (playerFaction != null && ClientFactionData.getFactionMemberCount(playerFaction) > 0) {
+            if (playerFaction != null && ClientFactionData.getFactionMemberCount(playerFaction) < 1) {
                 ClientAllianceData.removeFactionInformation(playerFaction);
             }
         }));
