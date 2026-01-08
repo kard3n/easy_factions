@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.server.alliance;
 
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.mojang.brigadier.CommandDispatcher;
@@ -9,6 +10,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 public class AllianceCommands {
@@ -141,7 +143,11 @@ public class AllianceCommands {
                             }
 
                             StringBuilder builder = new StringBuilder();
-                            builder.append("Your faction is a member of \"").append(alliance.getName()).append("\". Members are: ");
+                            builder.append("Your faction is a member of \"");
+                            if (alliance.getAbbreviation() != null) {
+                                builder.append("[").append(alliance.getAbbreviation()).append("] ");
+                            }
+                            builder.append(alliance.getName()).append("\". Members are: ");
                             for (String member : alliance.getMembers()) {
                                 builder.append(member).append("\n");
                             }
@@ -150,6 +156,51 @@ public class AllianceCommands {
 
                             return 1;
                         }))
+                .then(Commands.literal("setAbbreviation")
+                        .requires(source -> {
+                            try {
+                                MinecraftServer server = source.getServer();
+                                ServerPlayer player = source.getPlayerOrException();
+                                FactionStateManager factionManager = FactionStateManager.get(server);
+                                AllianceStateManager allianceManager = AllianceStateManager.get(server);
+
+                                Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
+                                if (!ServerConfig.enableAbbreviation) {
+                                    return false;
+                                }
+
+                                Alliance alliance = allianceManager.getAllianceByFaction(playerFaction.getName());
+                                if (alliance == null) return false;
+                                return alliance.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("abbreviation", StringArgumentType.word())
+                                .executes(context -> {
+                                    String abbreviation = StringArgumentType.getString(context, "abbreviation");
+                                    if (ServerConfig.allianceAbbreviationMinLength > abbreviation.length() || abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength) {
+                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.allianceAbbreviationMinLength + " and " + ServerConfig.allianceAbbreviationMaxLength + " letters long."));
+                                        return 1;
+                                    }
+
+                                    MinecraftServer server = context.getSource().getServer();
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+
+                                    try {
+                                        AllianceStateManager allianceManager = AllianceStateManager.get(server);
+                                        Alliance alliance = allianceManager.getAllianceByFaction(FactionStateManager.get(server).getFactionByPlayer(player.getUUID()).getName());
+                                        allianceManager.setAbbreviation(alliance.getName(), abbreviation);
+                                        context.getSource().sendSuccess(() -> Component.literal("Set alliance abbreviation to " + abbreviation), false);
+                                    }
+                                    catch (RuntimeException e) {
+                                        context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                    }
+
+
+                                    return 1;
+                                })
+                        ))
 
         );
     }

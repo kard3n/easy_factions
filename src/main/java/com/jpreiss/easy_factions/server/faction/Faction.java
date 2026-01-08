@@ -6,14 +6,16 @@ import java.util.UUID;
 
 public class Faction {
     private String name;
+    private String abbreviation;
     private UUID owner;
     private Set<UUID> members = new HashSet<>();
     private Set<UUID> officers = new HashSet<>();
     private Set<UUID> invited = new HashSet<>();
     private boolean friendlyFire = false;
 
-    public Faction(String name, UUID owner) {
+    public Faction(String name, String abbreviation, UUID owner) {
         this.name = name;
+        this.abbreviation = abbreviation;
         this.owner = owner;
         this.members.add(owner);
     }
@@ -68,5 +70,13 @@ public class Faction {
 
     public void setOfficers(Set<UUID> officers) {
         this.officers = officers;
+    }
+
+    public String getAbbreviation() {
+        return abbreviation;
+    }
+
+    public void setAbbreviation(String abbreviation) {
+        this.abbreviation = abbreviation;
     }
 }

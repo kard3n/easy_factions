@@ -1,7 +1,7 @@
 package com.jpreiss.easy_factions.server.faction;
 
-import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -11,6 +11,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
@@ -34,7 +35,7 @@ public class FactionCommands {
                             FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
-                                data.createFaction(name, player, context.getSource().getServer());
+                                data.createFaction(name, null, player, context.getSource().getServer());
                                 context.getSource().sendSuccess(() -> Component.literal("Faction \"" + name + "\" created!"), false);
                             } catch (RuntimeException e) {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
@@ -178,7 +179,11 @@ public class FactionCommands {
                                 context.getSource().sendSuccess(() -> Component.literal("You are currently not in a faction."), false);
                             } else {
                                 StringBuilder builder = new StringBuilder();
-                                builder.append("You are a member of \"").append(playerFaction.getName()).append("\"\nYour members are: ");
+                                builder.append("You are a member of \"");
+                                if (playerFaction.getAbbreviation() != null) {
+                                    builder.append("[").append(playerFaction.getAbbreviation()).append("] ");
+                                }
+                                builder.append(playerFaction.getName()).append("\"\nYour members are: ");
                                 for (UUID member : playerFaction.getMembers()) {
                                     builder.append(Utils.getPlayerNameOffline(member, context.getSource().getServer())).append(" ");
                                 }
@@ -229,6 +234,37 @@ public class FactionCommands {
                                     } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
+                                    return 1;
+                                })))
+                .then(Commands.literal("setAbbreviation")
+                        .requires(source -> {
+                            try {
+                                MinecraftServer server = source.getServer();
+                                ServerPlayer player = source.getPlayerOrException();
+                                FactionStateManager factionManager = FactionStateManager.get(server);
+                                Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
+                                if (!ServerConfig.enableAbbreviation) {
+                                    return false;
+                                }
+                                return playerFaction.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        }).then(Commands.argument("abbreviation", StringArgumentType.word())
+                                .executes(context -> {
+
+                                    String abbreviation = StringArgumentType.getString(context, "abbreviation");
+                                    if (ServerConfig.factionAbbreviationMinLength > abbreviation.length() || abbreviation.length() > ServerConfig.factionAbbreviationMaxLength) {
+                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.factionAbbreviationMinLength + " and " + ServerConfig.factionAbbreviationMaxLength + " letters long."));
+                                        return 1;
+                                    }
+
+                                    MinecraftServer server = context.getSource().getServer();
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    FactionStateManager factionManager = FactionStateManager.get(server);
+                                    factionManager.setAbbreviation(factionManager.getFactionByPlayer(player.getUUID()).getName(), abbreviation);
+                                    context.getSource().sendSuccess(() -> Component.literal("Set faction abbreviation to " + abbreviation), false);
+
                                     return 1;
                                 })))
 

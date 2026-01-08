@@ -1,13 +1,13 @@
 package com.jpreiss.easy_factions.server.faction;
 
-import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.network.NetworkManager;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.api.events.FactionCreateEvent;
 import com.jpreiss.easy_factions.server.api.events.FactionDisbandEvent;
 import com.jpreiss.easy_factions.server.api.events.FactionJoinEvent;
 import com.jpreiss.easy_factions.server.api.events.FactionLeaveEvent;
-import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -50,10 +50,10 @@ public class FactionStateManager extends SavedData {
     /**
      * Creates a new faction
      */
-    public void createFaction(String name, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
+    public void createFaction(String name, String abbreviation, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
         if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID()))
             throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
-        Faction faction = new Faction(name, leader.getUUID());
+        Faction faction = new Faction(name, abbreviation, leader.getUUID());
         factions.put(name, faction);
         playerFactionMap.put(leader.getUUID(), name);
 
@@ -332,6 +332,30 @@ public class FactionStateManager extends SavedData {
     }
 
     /**
+     * Set the abbreviation for a faction
+     *
+     * @param factionName  Name of the faction
+     * @param abbreviation The abbreviation
+     */
+    public void setAbbreviation(String factionName, String abbreviation) throws RuntimeException {
+        if (!factions.containsKey(factionName)) throw new RuntimeException("The faction does not exist.");
+        factions.get(factionName).setAbbreviation(abbreviation);
+        this.setDirty();
+    }
+
+    /**
+     * Get the abbreviation for a faction
+     *
+     * @param factionName Name of the faction
+     * @return The abbreviation, null if not set
+     */
+    public String getAbbreviation(String factionName) {
+        if (!factions.containsKey(factionName)) return null;
+        return factions.get(factionName).getAbbreviation();
+    }
+
+
+    /**
      * Return all alliance names
      */
     public Set<String> getAllFactionNames() {
@@ -355,11 +379,12 @@ public class FactionStateManager extends SavedData {
                 CompoundTag fTag = list.getCompound(i);
 
                 String name = fTag.getString("Name");
+                String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
                 UUID owner = fTag.getUUID("Owner");
                 boolean friendlyFire = fTag.getBoolean("FriendlyFire");
 
                 // Reconstruct Faction object
-                Faction f = new Faction(name, owner);
+                Faction f = new Faction(name, abbreviation, owner);
                 f.setFriendlyFire(friendlyFire); // Assuming setter exists
 
                 // Load Members
@@ -400,7 +425,12 @@ public class FactionStateManager extends SavedData {
         for (Faction f : factions.values()) {
             CompoundTag fTag = new CompoundTag();
 
+            String abbreviation = f.getAbbreviation();
+
             fTag.putString("Name", f.getName());
+            if (abbreviation != null) { // Could be null
+                fTag.putString("Abbreviation", abbreviation);
+            }
             fTag.putUUID("Owner", f.getOwner());
             fTag.putBoolean("FriendlyFire", f.isFriendlyFire()); // Assuming getter exists
 

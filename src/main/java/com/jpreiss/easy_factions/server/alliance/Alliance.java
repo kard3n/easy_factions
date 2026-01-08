@@ -5,11 +5,13 @@ import java.util.Set;
 
 public class Alliance {
     private String name;
+    private String abbreviation;
     private Set<String> members;
     private Set<String> invited = new HashSet<>();
 
-    public Alliance(String name, Set<String> members) {
+    public Alliance(String name, String abbreviation, Set<String> members) {
         this.name = name;
+        this.abbreviation = abbreviation;
         this.members =  members;
     }
 
@@ -35,5 +37,13 @@ public class Alliance {
 
     public void setInvited(Set<String> invited) {
         this.invited = invited;
+    }
+
+    public String getAbbreviation() {
+        return abbreviation;
+    }
+
+    public void setAbbreviation(String abbreviation) {
+        this.abbreviation = abbreviation;
     }
 }

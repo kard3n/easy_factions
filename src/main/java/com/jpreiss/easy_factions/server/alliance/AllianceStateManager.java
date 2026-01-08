@@ -1,14 +1,14 @@
 package com.jpreiss.easy_factions.server.alliance;
 
-import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.network.NetworkManager;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.api.events.AllianceCreateEvent;
 import com.jpreiss.easy_factions.server.api.events.AllianceDisbandEvent;
 import com.jpreiss.easy_factions.server.api.events.AllianceJoinEvent;
 import com.jpreiss.easy_factions.server.api.events.AllianceLeaveEvent;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -60,7 +60,7 @@ public class AllianceStateManager extends SavedData {
         if (factionAllianceMap.containsKey(creatorFaction.getName()))
             throw new RuntimeException("Your faction is already in the following alliance: \"" + factionAllianceMap.get(name) + "\"");
 
-        Alliance alliance = new Alliance(name, new HashSet<>(Set.of(creatorFaction.getName())));
+        Alliance alliance = new Alliance(name, null, new HashSet<>(Set.of(creatorFaction.getName())));
         alliances.put(name, alliance);
         factionAllianceMap.put(creatorFaction.getName(), name);
 
@@ -221,6 +221,18 @@ public class AllianceStateManager extends SavedData {
         return Collections.unmodifiableMap(factionAllianceMap);
     }
 
+    public void setAbbreviation(String allianceName, String abbreviation) throws RuntimeException {
+        if (!alliances.containsKey(allianceName)) throw new RuntimeException("The alliance does not exist.");
+        alliances.get(allianceName).setAbbreviation(abbreviation);
+        this.setDirty();
+    }
+
+    public String getAbbreviation(String allianceName) {
+        if (!alliances.containsKey(allianceName)) return null;
+        return alliances.get(allianceName).getAbbreviation();
+    }
+
+
     /**
      * Loads the data from NBT
      */
@@ -234,6 +246,7 @@ public class AllianceStateManager extends SavedData {
                 CompoundTag allianceTag = alliancesList.getCompound(i);
 
                 String name = allianceTag.getString("Name");
+                String abbreviation = allianceTag.contains("Abbreviation") ? allianceTag.getString("Abbreviation") : null; // Could not exist (null)
                 Set<String> members = new HashSet<>();
                 Set<String> invited = new HashSet<>();
 
@@ -250,7 +263,7 @@ public class AllianceStateManager extends SavedData {
                 }
 
                 // Create Alliance Object
-                Alliance alliance = new Alliance(name, members);
+                Alliance alliance = new Alliance(name, abbreviation, members);
                 alliance.getInvited().addAll(invited);
 
                 // Add to internal maps
@@ -276,6 +289,11 @@ public class AllianceStateManager extends SavedData {
         for (Alliance alliance : this.alliances.values()) {
             CompoundTag allianceTag = new CompoundTag();
             allianceTag.putString("Name", alliance.getName());
+            String abbreviation = alliance.getAbbreviation();
+
+            if (abbreviation != null) {
+                allianceTag.putString("Abbreviation", abbreviation);
+            }
 
             // Save Members
             ListTag membersTag = new ListTag();

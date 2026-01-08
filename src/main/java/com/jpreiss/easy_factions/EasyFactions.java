@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions;
 
+import com.jpreiss.easy_factions.client.ClientConfig;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceCommands;
 import com.jpreiss.easy_factions.server.faction.FactionCommands;
@@ -50,6 +51,7 @@ public class EasyFactions
 
         // Register our mod's ForgeConfigSpec
         context.registerConfig(ModConfig.Type.COMMON, ServerConfig.SPEC);
+        context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
