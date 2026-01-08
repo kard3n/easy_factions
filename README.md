@@ -10,7 +10,9 @@
 ## ✨ Key Features
 
 ### 👥 Create & Conquer
-Start your own faction in seconds. Inviting and managing members is easy and intuitive
+Start your own faction in seconds. Inviting and managing members is easy and intuitive.
+
+> If your chosen faction or alliance name is too long, you can also add an abbreviation! You can change what to see on the nametag via the clientside configuration
 
 ### 🛡️ Friendly Fire
 Toggle **Friendly Fire** on or off for your faction. No more accidental sword swings hitting your teammates during a raid!
@@ -30,30 +32,41 @@ Delegate authority to keep your faction running smoothly.
 ## 💻 Commands
 
 **Faction commands:**
-| Command | Description |
-| :--- | :--- |
-| `/faction create <name>` | Create a new faction. |
-| `/faction invite <player>` | Invite a player to your faction. |
-| `/faction join <name>` | Accept an invitation to join a faction. |
-| `/faction leave` | Leave your current faction. If the owner leaves, the faction is abandoned |
-| `/faction addOfficer <player>` | Promote a member to Officer. |
-| `/faction kick <player>` | Kick a member (Officers/Leader only). |
+
+| Command                                   | Description                                                               |
+|:------------------------------------------|:--------------------------------------------------------------------------|
+| `/faction create <name>`                  | Create a new faction.                                                     |
+| `/faction invite <player>`                | Invite a player to your faction.                                          |
+| `/faction join <name>`                    | Accept an invitation to join a faction.                                   |
+| `/faction leave`                          | Leave your current faction. If the owner leaves, the faction is abandoned |
+| `/faction addOfficer <player>`            | Promote a member to Officer.                                              |
+| `/faction kick <player>`                  | Kick a member (Officers/Leader only).                                     |
+| `/faction setAbbreviation <abbreviation>` | Set the faction abbreviation.                                             |
 
 **Alliance commands:**
 Can only be executed by the owner of a faction.
-| Command | Description |
-| :--- | :--- |
-| `/alliance create <name>` | Create a new alliance with the given name |
-| `/alliance leave` | Leave your current alliance. Restricted to the faction owner |
-| `/alliance invite <factionName>` | Invite a new faction to the alliance |
-| `/alliance join <factionName>` | Accept an invitation to an alliance |
+
+| Command                                    | Description                                                  |
+|:-------------------------------------------|:-------------------------------------------------------------|
+| `/alliance create <name>`                  | Create a new alliance with the given name                    |
+| `/alliance leave`                          | Leave your current alliance. Restricted to the faction owner |
+| `/alliance invite <factionName>`           | Invite a new faction to the alliance                         |
+| `/alliance join <factionName>`             | Accept an invitation to an alliance                          |
+| `/alliance setAbbreviation <abbreviation>` | Set the alliance abbreviation.                               |
+
 ---
 
 ## 🔧 Configuration
 Server owners can tweak **Easy Factions** to fit their gameplay style via the config file.
 
-| Option              | Description                                                      |
-|:--------------------|:-----------------------------------------------------------------|
-| `maxFactionSize`    | Sets the maximum number of players allowed in one faction.       |
-| `maxAllianceSize`   | Limits how many factions an alliance can contain.                |
-| `forceFriendlyFire` | If set to `true`, friendly fire will be enabled for all factions |
+| Option                          | Description                                                      |
+|:--------------------------------|:-----------------------------------------------------------------|
+| `maxFactionSize`                | Sets the maximum number of players allowed in one faction.       |
+| `maxAllianceSize`               | Limits how many factions an alliance can contain.                |
+| `forceFriendlyFire`             | If set to `true`, friendly fire will be enabled for all factions |
+| `enableAbbreviation`            | Allow factions to set an abbreviation                            |
+| `allowAbbreviationChange`       | Allow factions to change their abbreviation                      |
+| `factionAbbreviationMinLength`  | Minimum length for faction abbreviations.                        |
+| `factionAbbreviationMaxLength`  | Maximum length for faction abbreviations.                        |
+| `allianceAbbreviationMinLength` | Minimum length for alliance abbreviations.                       |
+| `allianceAbbreviationMaxLength` | Maximum length for alliance abbreviations.                       |
