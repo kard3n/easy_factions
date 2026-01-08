@@ -28,6 +28,8 @@ public class ClientEventHandler {
         String factionName = ClientFactionData.getFaction(player.getUUID());
         if (factionName == null) return;
 
+        if(player.isInvisible()) return;
+
         String allianceName = ClientFactionData.getAlliance(factionName);
 
 
@@ -84,17 +86,21 @@ public class ClientEventHandler {
         float backgroundOpacity = Minecraft.getInstance().options.getBackgroundOpacity(0.25F);
         int backgroundColor = (int)(backgroundOpacity * 255.0F) << 24;
 
+        boolean isDiscrete = player.isDiscrete();
+        int textColor = isDiscrete ? 0x20FFFFFF : 0xFFFFFFFF;
+        Font.DisplayMode displayMode = isDiscrete ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+
         font.drawInBatch(
                 displayText,
                 xOffset,
                 0,
-                0xFFFFFFFF,
+                textColor,
                 false,
                 matrix4f,
                 event.getMultiBufferSource(),
-                Font.DisplayMode.NORMAL,
+                displayMode,
                 backgroundColor,
-                0xF000F0
+                event.getPackedLight()
         );
 
         poseStack.popPose();
