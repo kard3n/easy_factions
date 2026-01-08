@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.network.packet;
 
+import com.jpreiss.easy_factions.client.ClientAllianceData;
 import com.jpreiss.easy_factions.client.ClientFactionData;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -24,7 +25,10 @@ public class PacketRemoveFactionData {
     }
 
     public static void handle(PacketRemoveFactionData msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientFactionData.removeFaction(msg.factionName)));
+        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+            ClientFactionData.removeFaction(msg.factionName);
+            ClientAllianceData.removeFactionInformation(msg.factionName);
+        }));
         ctx.get().setPacketHandled(true);
     }
 }

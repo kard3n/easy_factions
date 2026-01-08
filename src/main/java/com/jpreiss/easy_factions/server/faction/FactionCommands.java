@@ -247,7 +247,7 @@ public class FactionCommands {
                                     return false;
                                 }
                                 return playerFaction.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
-                            } catch (CommandSyntaxException e) {
+                            } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
                         }).then(Commands.argument("abbreviation", StringArgumentType.word())
@@ -262,7 +262,7 @@ public class FactionCommands {
                                     MinecraftServer server = context.getSource().getServer();
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     FactionStateManager factionManager = FactionStateManager.get(server);
-                                    factionManager.setAbbreviation(factionManager.getFactionByPlayer(player.getUUID()).getName(), abbreviation);
+                                    factionManager.setAbbreviation(factionManager.getFactionByPlayer(player.getUUID()).getName(), abbreviation, server);
                                     context.getSource().sendSuccess(() -> Component.literal("Set faction abbreviation to " + abbreviation), false);
 
                                     return 1;

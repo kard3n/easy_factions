@@ -221,9 +221,10 @@ public class AllianceStateManager extends SavedData {
         return Collections.unmodifiableMap(factionAllianceMap);
     }
 
-    public void setAbbreviation(String allianceName, String abbreviation) throws RuntimeException {
+    public void setAbbreviation(String allianceName, String abbreviation, MinecraftServer server) throws RuntimeException {
         if (!alliances.containsKey(allianceName)) throw new RuntimeException("The alliance does not exist.");
         alliances.get(allianceName).setAbbreviation(abbreviation);
+        NetworkManager.broadcastAllianceAbbreviationUpdate(allianceName, abbreviation, server);
         this.setDirty();
     }
 
@@ -247,6 +248,9 @@ public class AllianceStateManager extends SavedData {
 
                 String name = allianceTag.getString("Name");
                 String abbreviation = allianceTag.contains("Abbreviation") ? allianceTag.getString("Abbreviation") : null; // Could not exist (null)
+                if(abbreviation != null && abbreviation.isEmpty()){
+                    abbreviation = null;
+                }
                 Set<String> members = new HashSet<>();
                 Set<String> invited = new HashSet<>();
 

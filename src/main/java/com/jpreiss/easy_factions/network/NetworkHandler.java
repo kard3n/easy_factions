@@ -1,9 +1,7 @@
 package com.jpreiss.easy_factions.network;
 
 import com.jpreiss.easy_factions.EasyFactions;
-import com.jpreiss.easy_factions.network.packet.PacketFactionLeaveAlliance;
-import com.jpreiss.easy_factions.network.packet.PacketRemovePlayerData;
-import com.jpreiss.easy_factions.network.packet.PacketSyncFaction;
+import com.jpreiss.easy_factions.network.packet.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,7 +10,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class NetworkHandler {
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "1.1";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(EasyFactions.MODID, "main"),
@@ -23,9 +21,11 @@ public class NetworkHandler {
 
     public static void register() {
         int id = 0;
-        CHANNEL.registerMessage(id++, PacketSyncFaction.class, PacketSyncFaction::encode, PacketSyncFaction::decode, PacketSyncFaction::handle);
+        CHANNEL.registerMessage(id++, PacketSyncFactionAlliance.class, PacketSyncFactionAlliance::encode, PacketSyncFactionAlliance::decode, PacketSyncFactionAlliance::handle);
         CHANNEL.registerMessage(id++, PacketRemovePlayerData.class, PacketRemovePlayerData::encode, PacketRemovePlayerData::decode, PacketRemovePlayerData::handle);
         CHANNEL.registerMessage(id++, PacketFactionLeaveAlliance.class, PacketFactionLeaveAlliance::encode, PacketFactionLeaveAlliance::decode, PacketFactionLeaveAlliance::handle);
+        CHANNEL.registerMessage(id++, PacketUpdateFactionAbbreviation.class, PacketUpdateFactionAbbreviation::encode, PacketUpdateFactionAbbreviation::decode, PacketUpdateFactionAbbreviation::handle);
+        CHANNEL.registerMessage(id++, PacketUpdateAllianceAbbreviation.class, PacketUpdateAllianceAbbreviation::encode, PacketUpdateAllianceAbbreviation::decode, PacketUpdateAllianceAbbreviation::handle);
     }
 
     /**

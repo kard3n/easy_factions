@@ -24,14 +24,29 @@ public class ClientEventHandler {
     public static void onRenderNameTag(RenderNameTagEvent event) {
         if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.DENY) return;
         if (!(event.getEntity() instanceof Player player)) return;
+        if(player.isInvisible()) return;
 
         String factionName = ClientFactionData.getFaction(player.getUUID());
         if (factionName == null) return;
+        String factionAbbreviation;
+        if (ClientConfig.showFactionAbbreviation){
+            factionAbbreviation = ClientFactionData.getAbbreviation(factionName);
+        }
+        else{
+            factionAbbreviation = null;
+        }
 
-        if(player.isInvisible()) return;
 
-        String allianceName = ClientFactionData.getAlliance(factionName);
 
+        String allianceName = ClientAllianceData.getAlliance(factionName);
+
+        String allianceAbbreviation;
+        if (ClientConfig.showAllianceAbbreviation){
+            allianceAbbreviation = ClientAllianceData.getAbbreviation(allianceName);
+        }
+        else{
+            allianceAbbreviation = null;
+        }
 
         MutableComponent displayText = Component.empty();
 
@@ -39,7 +54,7 @@ public class ClientEventHandler {
             displayText.append(Component.literal("[")
                     .withStyle(ChatFormatting.WHITE));
 
-            displayText.append(Component.literal(allianceName)
+            displayText.append(Component.literal(allianceAbbreviation!=null ? allianceAbbreviation : allianceName)
                     .withStyle(ChatFormatting.LIGHT_PURPLE)); // Color for Alliance
 
             displayText.append(Component.literal("] ")
@@ -49,7 +64,7 @@ public class ClientEventHandler {
         displayText.append(Component.literal("<")
                 .withStyle(ChatFormatting.WHITE));
 
-        displayText.append(Component.literal(factionName)
+        displayText.append(Component.literal(factionAbbreviation!=null ? factionAbbreviation : factionName)
                 .withStyle(ChatFormatting.AQUA)); // Color for Faction
 
         displayText.append(Component.literal(">")

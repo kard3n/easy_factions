@@ -1,8 +1,6 @@
 package com.jpreiss.easy_factions.network;
 
-import com.jpreiss.easy_factions.network.packet.PacketFactionLeaveAlliance;
-import com.jpreiss.easy_factions.network.packet.PacketRemovePlayerData;
-import com.jpreiss.easy_factions.network.packet.PacketSyncFaction;
+import com.jpreiss.easy_factions.network.packet.*;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
@@ -23,7 +21,7 @@ public class NetworkManager {
     public static void updatePlayerAboutOthers(ServerPlayer player, MinecraftServer server) {
         if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
 
-        PacketSyncFaction onlinePlayerData = getOnlinePlayerData(server);
+        PacketSyncFactionAlliance onlinePlayerData = getOnlinePlayerData(server);
         // Send faction state to the new player
         NetworkHandler.sendToPlayer(onlinePlayerData, player);
     }
@@ -34,7 +32,7 @@ public class NetworkManager {
     public static void broadcastPlayerInfo(ServerPlayer newPlayer, MinecraftServer server) {
 
         // Send info about the new players affiliations to the rest
-        PacketSyncFaction newPlayerData = getSinglePlayerData(newPlayer.getUUID(), server);
+        PacketSyncFactionAlliance newPlayerData = getSinglePlayerData(newPlayer.getUUID(), server);
         if (newPlayerData != null) {
             for (ServerPlayer other : server.getPlayerList().getPlayers()) {
                 // No need to update the new player, he already got the update before.
@@ -66,7 +64,13 @@ public class NetworkManager {
         Alliance alliance = AllianceStateManager.get(server).getAllianceByFaction(faction.getName());
         if(alliance != null) factionAlliances.put(faction.getName(), alliance.getName());
 
-        PacketSyncFaction packet = new PacketSyncFaction(playerFactions, factionAlliances);
+        Map<String, String> factionToAbbreviation = new  HashMap<>();
+        if(faction.getAbbreviation() != null) factionToAbbreviation.put(faction.getName(), faction.getAbbreviation());
+
+        Map<String, String> allianceToAbbreviation = new HashMap<>();
+        if(alliance != null && alliance.getAbbreviation() != null) allianceToAbbreviation.put(alliance.getName(), alliance.getAbbreviation());
+
+        PacketSyncFactionAlliance packet = new PacketSyncFactionAlliance(playerFactions, factionAlliances, factionToAbbreviation, allianceToAbbreviation);
         NetworkHandler.sendToAllPresent(packet, server);
     }
 
@@ -98,9 +102,26 @@ public class NetworkManager {
     }
 
     /**
-     * Helper method. Gets all factions containing an online player
+     * Broadcasts a faction abbreviation change
      */
-    private static PacketSyncFaction getOnlinePlayerData(MinecraftServer server) {
+    public static void broadcastFactionAbbreviationUpdate(String factionName, String abbreviation, MinecraftServer server){
+        PacketUpdateFactionAbbreviation packet = new PacketUpdateFactionAbbreviation(factionName, abbreviation);
+        NetworkHandler.sendToAllPresent(packet, server);
+    }
+
+    /**
+     * Broadcasts an alliance abbreviation change
+     */
+    public static void broadcastAllianceAbbreviationUpdate(String allianceName, String abbreviation, MinecraftServer server){
+        PacketUpdateAllianceAbbreviation packet = new PacketUpdateAllianceAbbreviation(allianceName, abbreviation);
+        NetworkHandler.sendToAllPresent(packet, server);
+    }
+
+
+    /**
+     * Helper method. Gets all factions containing at least one online player
+     */
+    private static PacketSyncFactionAlliance getOnlinePlayerData(MinecraftServer server) {
         FactionStateManager factionManager = FactionStateManager.get(server);
         AllianceStateManager allianceManager = AllianceStateManager.get(server);
 
@@ -109,20 +130,32 @@ public class NetworkManager {
         // Faction name, alliance name
         Map<String, String> factionAlliances = new HashMap<>();
 
+        Map<String, String> factionToAbbreviation = new  HashMap<>();
+        Map<String, String> allianceToAbbreviation = new HashMap<>();
 
-        Faction faction = null;
+
+        Faction faction;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             faction = factionManager.getFactionByPlayer(player.getUUID());
-            if (faction != null) playerFactions.put(player.getUUID(), faction.getName());
+            if (faction != null){
+                playerFactions.put(player.getUUID(), faction.getName());
+                if(faction.getAbbreviation() != null) factionToAbbreviation.put(faction.getName(), faction.getAbbreviation());
+
+            }
         }
 
-        Alliance alliance = null;
+        Alliance alliance;
         for (String factionName : new HashSet<>(playerFactions.values())) {
             alliance = allianceManager.getAllianceByFaction(factionName);
-            if (alliance != null) factionAlliances.put(factionName, alliance.getName());
+            if (alliance != null){
+                factionAlliances.put(factionName, alliance.getName());
+                if(alliance.getAbbreviation() != null) allianceToAbbreviation.put(alliance.getName(), alliance.getAbbreviation());
+            }
         }
 
-        return new PacketSyncFaction(playerFactions, factionAlliances);
+
+
+        return new PacketSyncFactionAlliance(playerFactions, factionAlliances, factionToAbbreviation, allianceToAbbreviation);
     }
 
     /**
@@ -130,7 +163,7 @@ public class NetworkManager {
      *
      * @return His faction and alliance data if available, otherwise null
      */
-    private static PacketSyncFaction getSinglePlayerData(UUID playerUUID, MinecraftServer server) {
+    private static PacketSyncFactionAlliance getSinglePlayerData(UUID playerUUID, MinecraftServer server) {
         FactionStateManager factionManager = FactionStateManager.get(server);
         AllianceStateManager allianceManager = AllianceStateManager.get(server);
 
@@ -139,11 +172,17 @@ public class NetworkManager {
         if (playerFaction == null) return null;
 
         Map<UUID, String> playerFactions = Map.of(playerUUID, playerFaction.getName());
+        Map<String, String> factionAbbreviatons = new HashMap<>();
+        if(playerFaction.getAbbreviation() != null) factionAbbreviatons.put(playerFaction.getName(), playerFaction.getAbbreviation());
 
         Alliance factionAlliance = allianceManager.getAllianceByFaction(playerFaction.getName());
+        Map<String, String> factionAlliances = new HashMap<>();
+        if(factionAlliance != null) factionAlliances.put(playerFaction.getName(), factionAlliance.getName());
 
-        if (factionAlliance == null) return new PacketSyncFaction(playerFactions, new HashMap<>());
-        return new PacketSyncFaction(playerFactions, Map.of(playerFaction.getName(), factionAlliance.getName()));
+        Map<String, String> allianceAbbreviations = new HashMap<>();
+        if(factionAlliance != null && factionAlliance.getAbbreviation() != null) allianceAbbreviations.put(factionAlliance.getName(), factionAlliance.getAbbreviation());
+
+        return new PacketSyncFactionAlliance(playerFactions, factionAlliances, factionAbbreviatons, allianceAbbreviations);
     }
 
 }

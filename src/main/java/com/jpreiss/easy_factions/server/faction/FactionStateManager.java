@@ -337,9 +337,10 @@ public class FactionStateManager extends SavedData {
      * @param factionName  Name of the faction
      * @param abbreviation The abbreviation
      */
-    public void setAbbreviation(String factionName, String abbreviation) throws RuntimeException {
+    public void setAbbreviation(String factionName, String abbreviation, MinecraftServer server) throws RuntimeException {
         if (!factions.containsKey(factionName)) throw new RuntimeException("The faction does not exist.");
         factions.get(factionName).setAbbreviation(abbreviation);
+        NetworkManager.broadcastFactionAbbreviationUpdate(factionName, abbreviation, server);
         this.setDirty();
     }
 
@@ -380,6 +381,9 @@ public class FactionStateManager extends SavedData {
 
                 String name = fTag.getString("Name");
                 String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
+                if(abbreviation != null && abbreviation.isEmpty()){
+                    abbreviation = null;
+                }
                 UUID owner = fTag.getUUID("Owner");
                 boolean friendlyFire = fTag.getBoolean("FriendlyFire");
 

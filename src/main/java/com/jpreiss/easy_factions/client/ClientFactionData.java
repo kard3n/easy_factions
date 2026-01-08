@@ -5,35 +5,45 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ClientFactionData {
-    private static Map<UUID, String> playerFactions = new HashMap<>();
+    private static final Map<UUID, String> playerFactions = new HashMap<>();
     // Faction, alliance
-    private static Map<String, String> factionAlliances = new HashMap<>();
+    private static final Map<String, String> factionAbbreviations = new HashMap<>();
 
     /**
      * Updates the data with the provided values
      */
-    public static void update(Map<UUID, String> newPlayerFactions, Map<String, String> newFactionAlliances) {
+    public static void update(Map<UUID, String> newPlayerFactions, Map<String, String> factionAbbreviations) {
         playerFactions.putAll(newPlayerFactions);
-        factionAlliances.putAll(newFactionAlliances);
+        ClientFactionData.factionAbbreviations.putAll(factionAbbreviations);
     }
 
     /**
-     * Removes all information for the player. Alliance is only kept if another member is online
-     * @param playerUUID
+     * Updates the data with the provided values
      */
-    public static void removePlayer(UUID playerUUID) {
+    public static void update(String factionName, String abbreviation) {
+        factionAbbreviations.put(factionName, abbreviation);
+    }
+
+
+    /**
+     * Removes all information for the player. Abbreviations are only kept if another member is online
+     * @param playerUUID UUID of the player
+     * @return The faction the player was in
+     */
+    public static String removePlayer(UUID playerUUID) {
         String faction = playerFactions.remove(playerUUID);
 
         if (faction != null && !playerFactions.containsValue(faction)) {
-            factionAlliances.remove(faction);
+            factionAbbreviations.remove(faction);
         }
+        return faction;
     }
 
     /**
      * Removes all information for the faction
      */
     public static void removeFaction(String factionName) {
-        factionAlliances.remove(factionName);
+        factionAbbreviations.remove(factionName);
         for(Map.Entry<UUID, String> entry : playerFactions.entrySet()){
             if(entry.getValue().equals(factionName)){
                 playerFactions.remove(entry.getKey());
@@ -42,18 +52,17 @@ public class ClientFactionData {
     }
 
     /**
-     * Remove the faction from its alliance
+     * Returns how many members of the faction are online
      */
-    public static void leaveAlliance(String factionName) {
-        factionAlliances.remove(factionName);
+    public static long getFactionMemberCount(String factionName){
+        return playerFactions.values().stream().filter(faction -> faction.equals(factionName)).count();
     }
-
 
     public static String getFaction(UUID playerUUID) {
         return playerFactions.get(playerUUID);
     }
 
-    public static String getAlliance(String factionName) {
-        return factionAlliances.get(factionName);
+    public static String getAbbreviation(String factionName) {
+        return factionAbbreviations.get(factionName);
     }
 }

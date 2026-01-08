@@ -172,7 +172,7 @@ public class AllianceCommands {
                                 Alliance alliance = allianceManager.getAllianceByFaction(playerFaction.getName());
                                 if (alliance == null) return false;
                                 return alliance.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
-                            } catch (CommandSyntaxException e) {
+                            } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
                         })
@@ -190,10 +190,9 @@ public class AllianceCommands {
                                     try {
                                         AllianceStateManager allianceManager = AllianceStateManager.get(server);
                                         Alliance alliance = allianceManager.getAllianceByFaction(FactionStateManager.get(server).getFactionByPlayer(player.getUUID()).getName());
-                                        allianceManager.setAbbreviation(alliance.getName(), abbreviation);
+                                        allianceManager.setAbbreviation(alliance.getName(), abbreviation, server);
                                         context.getSource().sendSuccess(() -> Component.literal("Set alliance abbreviation to " + abbreviation), false);
-                                    }
-                                    catch (RuntimeException e) {
+                                    } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
                                     }
 
