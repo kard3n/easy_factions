@@ -50,7 +50,7 @@ public class EasyFactions
         MinecraftForge.EVENT_BUS.register(this);
 
         // Register our mod's ForgeConfigSpec
-        context.registerConfig(ModConfig.Type.COMMON, ServerConfig.SPEC);
+        context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
     }
 
