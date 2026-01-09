@@ -11,7 +11,6 @@ import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -243,39 +242,18 @@ public class AllianceStateManager extends SavedData {
         if (tag.contains("Alliances", Tag.TAG_LIST)) {
             ListTag alliancesList = tag.getList("Alliances", Tag.TAG_COMPOUND);
 
+            Alliance alliance;
+
             for (int i = 0; i < alliancesList.size(); i++) {
-                CompoundTag allianceTag = alliancesList.getCompound(i);
+                alliance = Alliance.deserialize(alliancesList.getCompound(i));
 
-                String name = allianceTag.getString("Name");
-                String abbreviation = allianceTag.contains("Abbreviation") ? allianceTag.getString("Abbreviation") : null; // Could not exist (null)
-                if(abbreviation != null && abbreviation.isEmpty()){
-                    abbreviation = null;
-                }
-                Set<String> members = new HashSet<>();
-                Set<String> invited = new HashSet<>();
-
-                // Load Members
-                ListTag membersTag = allianceTag.getList("Members", Tag.TAG_STRING);
-                for (int j = 0; j < membersTag.size(); j++) {
-                    members.add(membersTag.getString(j));
-                }
-
-                // Load Invites
-                ListTag invitedTag = allianceTag.getList("Invited", Tag.TAG_STRING);
-                for (int j = 0; j < invitedTag.size(); j++) {
-                    invited.add(invitedTag.getString(j));
-                }
-
-                // Create Alliance Object
-                Alliance alliance = new Alliance(name, abbreviation, members);
-                alliance.getInvited().addAll(invited);
 
                 // Add to internal maps
-                data.alliances.put(name, alliance);
+                data.alliances.put(alliance.getName(), alliance);
 
                 // Rebuild lookup map
-                for (String member : members) {
-                    data.factionAllianceMap.put(member, name);
+                for (String member : alliance.getMembers()) {
+                    data.factionAllianceMap.put(member, alliance.getName());
                 }
             }
         }
@@ -291,29 +269,7 @@ public class AllianceStateManager extends SavedData {
         ListTag alliancesList = new ListTag();
 
         for (Alliance alliance : this.alliances.values()) {
-            CompoundTag allianceTag = new CompoundTag();
-            allianceTag.putString("Name", alliance.getName());
-            String abbreviation = alliance.getAbbreviation();
-
-            if (abbreviation != null) {
-                allianceTag.putString("Abbreviation", abbreviation);
-            }
-
-            // Save Members
-            ListTag membersTag = new ListTag();
-            for (String member : alliance.getMembers()) {
-                membersTag.add(StringTag.valueOf(member));
-            }
-            allianceTag.put("Members", membersTag);
-
-            // Save Invited
-            ListTag invitedTag = new ListTag();
-            for (String invitedFaction : alliance.getInvited()) {
-                invitedTag.add(StringTag.valueOf(invitedFaction));
-            }
-            allianceTag.put("Invited", invitedTag);
-
-            alliancesList.add(allianceTag);
+            alliancesList.add(alliance.serialize());
         }
 
         tag.put("Alliances", alliancesList);
