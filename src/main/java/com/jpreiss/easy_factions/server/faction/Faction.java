@@ -1,5 +1,10 @@
 package com.jpreiss.easy_factions.server.faction;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -78,5 +83,74 @@ public class Faction {
 
     public void setAbbreviation(String abbreviation) {
         this.abbreviation = abbreviation;
+    }
+
+    public static Faction deserialize(CompoundTag fTag){
+        String name = fTag.getString("Name");
+        String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
+        if(abbreviation != null && abbreviation.isEmpty()){
+            abbreviation = null;
+        }
+        UUID owner = fTag.getUUID("Owner");
+        boolean friendlyFire = fTag.getBoolean("FriendlyFire");
+
+        // Reconstruct Faction object
+        Faction faction = new Faction(name, abbreviation, owner);
+        faction.setFriendlyFire(friendlyFire); // Assuming setter exists
+
+        // Load Members
+        ListTag membersTag = fTag.getList("Members", Tag.TAG_INT_ARRAY); // UUIDs are saved as IntArrays in NBT
+        for (Tag value : membersTag) {
+            faction.getMembers().add(NbtUtils.loadUUID(value));
+        }
+
+        // Load Invites
+        ListTag invitedTag = fTag.getList("Invited", Tag.TAG_INT_ARRAY);
+        for (Tag value : invitedTag) {
+            faction.getInvited().add(NbtUtils.loadUUID(value));
+        }
+
+        ListTag officersTag = fTag.getList("Officers", Tag.TAG_INT_ARRAY);
+        for (Tag value : officersTag) {
+            faction.getOfficers().add(NbtUtils.loadUUID(value));
+        }
+
+        return faction;
+    }
+
+    public CompoundTag serialize(){
+        CompoundTag fTag = new CompoundTag();
+
+        String abbreviation = this.getAbbreviation();
+
+        fTag.putString("Name", this.getName());
+        if (abbreviation != null) { // Could be null
+            fTag.putString("Abbreviation", abbreviation);
+        }
+        fTag.putUUID("Owner", this.getOwner());
+        fTag.putBoolean("FriendlyFire", this.isFriendlyFire()); // Assuming getter exists
+
+        // Save Members
+        ListTag membersTag = new ListTag();
+        for (UUID member : this.getMembers()) {
+            membersTag.add(NbtUtils.createUUID(member));
+        }
+        fTag.put("Members", membersTag);
+
+        // Save Invites
+        ListTag invitedTag = new ListTag();
+        for (UUID invited : this.getInvited()) {
+            invitedTag.add(NbtUtils.createUUID(invited));
+        }
+        fTag.put("Invited", invitedTag);
+
+        // Save officers
+        ListTag officersTag = new ListTag();
+        for (UUID officer : this.getOfficers()) {
+            officersTag.add(NbtUtils.createUUID(officer));
+        }
+        fTag.put("Officers", officersTag);
+
+        return fTag;
     }
 }

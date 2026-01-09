@@ -376,42 +376,14 @@ public class FactionStateManager extends SavedData {
         if (tag.contains("Factions", Tag.TAG_LIST)) {
             ListTag list = tag.getList("Factions", Tag.TAG_COMPOUND);
 
+            Faction faction;
             for (int i = 0; i < list.size(); i++) {
-                CompoundTag fTag = list.getCompound(i);
-
-                String name = fTag.getString("Name");
-                String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
-                if(abbreviation != null && abbreviation.isEmpty()){
-                    abbreviation = null;
-                }
-                UUID owner = fTag.getUUID("Owner");
-                boolean friendlyFire = fTag.getBoolean("FriendlyFire");
-
-                // Reconstruct Faction object
-                Faction f = new Faction(name, abbreviation, owner);
-                f.setFriendlyFire(friendlyFire); // Assuming setter exists
-
-                // Load Members
-                ListTag membersTag = fTag.getList("Members", Tag.TAG_INT_ARRAY); // UUIDs are saved as IntArrays in NBT
-                for (Tag value : membersTag) {
-                    f.getMembers().add(NbtUtils.loadUUID(value));
-                }
-
-                // Load Invites
-                ListTag invitedTag = fTag.getList("Invited", Tag.TAG_INT_ARRAY);
-                for (Tag value : invitedTag) {
-                    f.getInvited().add(NbtUtils.loadUUID(value));
-                }
-
-                ListTag officersTag = fTag.getList("Officers", Tag.TAG_INT_ARRAY);
-                for (Tag value : officersTag) {
-                    f.getOfficers().add(NbtUtils.loadUUID(value));
-                }
+                faction = Faction.deserialize(list.getCompound(i));
 
                 // Populate Maps
-                data.factions.put(name, f);
-                for (UUID member : f.getMembers()) {
-                    data.playerFactionMap.put(member, name);
+                data.factions.put(faction.getName(), faction);
+                for (UUID member : faction.getMembers()) {
+                    data.playerFactionMap.put(member, faction.getName());
                 }
             }
         }
@@ -426,40 +398,8 @@ public class FactionStateManager extends SavedData {
     public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
         ListTag list = new ListTag();
 
-        for (Faction f : factions.values()) {
-            CompoundTag fTag = new CompoundTag();
-
-            String abbreviation = f.getAbbreviation();
-
-            fTag.putString("Name", f.getName());
-            if (abbreviation != null) { // Could be null
-                fTag.putString("Abbreviation", abbreviation);
-            }
-            fTag.putUUID("Owner", f.getOwner());
-            fTag.putBoolean("FriendlyFire", f.isFriendlyFire()); // Assuming getter exists
-
-            // Save Members
-            ListTag membersTag = new ListTag();
-            for (UUID member : f.getMembers()) {
-                membersTag.add(NbtUtils.createUUID(member));
-            }
-            fTag.put("Members", membersTag);
-
-            // Save Invites
-            ListTag invitedTag = new ListTag();
-            for (UUID invited : f.getInvited()) {
-                invitedTag.add(NbtUtils.createUUID(invited));
-            }
-            fTag.put("Invited", invitedTag);
-
-            // Save officers
-            ListTag officersTag = new ListTag();
-            for (UUID officer : f.getOfficers()) {
-                officersTag.add(NbtUtils.createUUID(officer));
-            }
-            fTag.put("Officers", officersTag);
-
-            list.add(fTag);
+        for (Faction faction : factions.values()) {
+            list.add(faction.serialize());
         }
 
         tag.put("Factions", list);
