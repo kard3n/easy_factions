@@ -277,7 +277,7 @@ public class FactionCommands {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("targetFaction", StringArgumentType.greedyString())
+                        .then(Commands.argument("targetFaction", StringArgumentType.string())
                                 .suggests(OTHER_FACTIONS)
                                 .then(Commands.argument("status", StringArgumentType.word())
                                         .suggests(RelationshipStatus.RELATIONSHIP_STATUS)

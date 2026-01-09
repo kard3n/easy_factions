@@ -218,7 +218,7 @@ public class AllianceCommands {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("targetAlliance", StringArgumentType.greedyString())
+                        .then(Commands.argument("targetAlliance", StringArgumentType.string())
                                 .suggests(OTHER_ALLIANCES)
                                 .then(Commands.argument("status", StringArgumentType.word())
                                         .suggests(RelationshipStatus.RELATIONSHIP_STATUS)

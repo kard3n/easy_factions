@@ -10,7 +10,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class NetworkHandler {
-    private static final String PROTOCOL_VERSION = "1.1";
+    private static final String PROTOCOL_VERSION = "1.2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(EasyFactions.MODID, "main"),
@@ -26,6 +26,7 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketFactionLeaveAlliance.class, PacketFactionLeaveAlliance::encode, PacketFactionLeaveAlliance::decode, PacketFactionLeaveAlliance::handle);
         CHANNEL.registerMessage(id++, PacketUpdateFactionAbbreviation.class, PacketUpdateFactionAbbreviation::encode, PacketUpdateFactionAbbreviation::decode, PacketUpdateFactionAbbreviation::handle);
         CHANNEL.registerMessage(id++, PacketUpdateAllianceAbbreviation.class, PacketUpdateAllianceAbbreviation::encode, PacketUpdateAllianceAbbreviation::decode, PacketUpdateAllianceAbbreviation::handle);
+        CHANNEL.registerMessage(id++, PacketSetFactionRelations.class, PacketSetFactionRelations::encode, PacketSetFactionRelations::decode, PacketSetFactionRelations::handle);
     }
 
     /**

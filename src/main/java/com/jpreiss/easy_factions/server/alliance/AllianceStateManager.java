@@ -53,7 +53,6 @@ public class AllianceStateManager extends SavedData {
      * @throws RuntimeException If the name is taken or the player is not owner of a faction or the max faction size has been reached
      */
     public void createAlliance(String name, ServerPlayer creator, MinecraftServer server) throws RuntimeException {
-        // NOTE: If FactionStateManager is also converted to SavedData, you might need to pass 'creator.serverLevel()' here.
         Faction creatorFaction = FactionStateManager.get(server).getOwnedFaction(creator.getUUID());
 
         // Check that the faction isn't in an alliance
@@ -126,6 +125,7 @@ public class AllianceStateManager extends SavedData {
         MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
         NetworkManager.broadcastFactionUpdate(playerFaction, server);
+        NetworkManager.broadcastFactionRelationshipUpdate(playerFaction, server, allianceName, true);
 
         this.setDirty();
     }
@@ -164,6 +164,7 @@ public class AllianceStateManager extends SavedData {
             this.setDirty();
         }
         NetworkManager.broadcastFactionAllianceLeave(faction, server);
+        NetworkManager.broadcastFactionRelationshipUpdate(faction, server, allianceName, true);
 
         MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
     }
@@ -233,28 +234,27 @@ public class AllianceStateManager extends SavedData {
         return alliances.get(allianceName).getAbbreviation();
     }
 
-    public void setRelation(String otherAllianceName, ServerPlayer player, RelationshipStatus status) throws  RuntimeException {
+    public void setRelation(String otherAllianceName, ServerPlayer player, RelationshipStatus status) throws RuntimeException {
         MinecraftServer server = player.getServer();
-        if(server == null) throw  new RuntimeException("The player is null.");
+        if (server == null) throw new RuntimeException("The player is null.");
 
         FactionStateManager factionStateManager = FactionStateManager.get(player.getServer());
         Faction playerFaction = factionStateManager.getFactionByPlayer(player.getUUID());
-        if(playerFaction == null) throw  new RuntimeException("Faction not found");
+        if (playerFaction == null) throw new RuntimeException("Faction not found");
 
         Alliance playerAlliance = this.getAllianceByFaction(playerFaction.getName());
         Alliance otherAlliance = this.getAlliance(otherAllianceName);
-        if(playerAlliance == null ||otherAlliance == null) throw  new RuntimeException("The alliance does not exist");
+        if (playerAlliance == null || otherAlliance == null) throw new RuntimeException("The alliance does not exist");
 
-        if(status == RelationshipStatus.NEUTRAL){
-            otherAlliance.getIncomingRelations().remove(playerFaction.getName());
+        if (status == RelationshipStatus.NEUTRAL) {
+            otherAlliance.getIncomingRelations().remove(playerAlliance.getName());
             playerAlliance.getOutgoingRelations().remove(otherAllianceName);
-
-        }
-        else {
+        } else {
             otherAlliance.getIncomingRelations().put(playerAlliance.getName(), status);
             playerAlliance.getOutgoingRelations().put(otherAllianceName, status);
         }
-        // TODO: send over network for tag
+
+        NetworkManager.broadcastFactionRelationshipUpdate(playerFaction, server, otherAllianceName, true);
         this.setDirty();
     }
 
@@ -285,7 +285,7 @@ public class AllianceStateManager extends SavedData {
 
         // All alliances loaded. Populate incomingRelations for each
         for (Alliance alliance : stateManager.alliances.values()) {
-            for(Map.Entry<String, RelationshipStatus> entry: alliance.getOutgoingRelations().entrySet()){
+            for (Map.Entry<String, RelationshipStatus> entry : alliance.getOutgoingRelations().entrySet()) {
                 stateManager.alliances.get(entry.getKey()).getIncomingRelations().put(alliance.getName(), entry.getValue());
             }
         }

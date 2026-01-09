@@ -287,7 +287,9 @@ public class FactionStateManager extends SavedData {
             playerFaction.getOutgoingRelations().put(otherFactionName, status);
             otherFaction.getIncomingRelations().put(playerFaction.getName(), status);
         }
-        // TODO: send over network for tag
+
+        NetworkManager.broadcastFactionRelationshipUpdate(playerFaction, player.getServer(), otherFactionName, false);
+
         this.setDirty();
     }
 

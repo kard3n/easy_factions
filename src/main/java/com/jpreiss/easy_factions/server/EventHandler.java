@@ -59,9 +59,13 @@ public class EventHandler {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
+        if (event.getEntity() instanceof ServerPlayer player && player.getServer() != null) {
             NetworkManager.updatePlayerAboutOthers(player, player.getServer());
             NetworkManager.broadcastPlayerInfo(player, player.getServer());
+            Faction playerFaction = FactionStateManager.get(player.getServer()).getFactionByPlayer(player.getUUID());
+            if (playerFaction != null) {
+                NetworkManager.broadcastFactionUpdate(playerFaction, player.getServer());
+            }
         }
     }
 

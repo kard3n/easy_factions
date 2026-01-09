@@ -1,8 +1,9 @@
 package com.jpreiss.easy_factions.client;
 
 import com.jpreiss.easy_factions.EasyFactions;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.ChatFormatting; // Import this for colors
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
@@ -16,6 +17,15 @@ import org.joml.Matrix4f;
 
 @Mod.EventBusSubscriber(modid = EasyFactions.MODID, value = Dist.CLIENT)
 public class ClientEventHandler {
+    private static final ChatFormatting alliedAllianceColor = ChatFormatting.DARK_PURPLE;
+    private static final ChatFormatting alliedFactionColor = ChatFormatting.LIGHT_PURPLE;
+    private static final ChatFormatting friendlyAllianceColor = ChatFormatting.DARK_GREEN;
+    private static final ChatFormatting friendlyFactionColor = ChatFormatting.GREEN;
+    private static final ChatFormatting neutralAllianceColor = ChatFormatting.BLUE;
+    private static final ChatFormatting neutralFactionColor = ChatFormatting.DARK_AQUA;
+    private static final ChatFormatting hostileAllianceColor = ChatFormatting.DARK_RED;
+    private static final ChatFormatting hostileFactionColor = ChatFormatting.RED;
+
 
     /**
      * Adds alliance and faction info above the nametag
@@ -24,52 +34,44 @@ public class ClientEventHandler {
     public static void onRenderNameTag(RenderNameTagEvent event) {
         if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.DENY) return;
         if (!(event.getEntity() instanceof Player player)) return;
-        if(player.isInvisible()) return;
+        if (player.isInvisible()) return;
 
         String factionName = ClientFactionData.getFaction(player.getUUID());
         if (factionName == null) return;
-        String factionAbbreviation;
-        if (ClientConfig.showFactionAbbreviation){
-            factionAbbreviation = ClientFactionData.getAbbreviation(factionName);
-        }
-        else{
-            factionAbbreviation = null;
-        }
 
-
+        String factionAbbreviation = ClientConfig.showFactionAbbreviation ? ClientFactionData.getAbbreviation(factionName) : null;
 
         String allianceName = ClientAllianceData.getAlliance(factionName);
+        String allianceAbbreviation = ClientConfig.showAllianceAbbreviation ? ClientAllianceData.getAbbreviation(allianceName) : null;
 
-        String allianceAbbreviation;
-        if (ClientConfig.showAllianceAbbreviation){
-            allianceAbbreviation = ClientAllianceData.getAbbreviation(allianceName);
+        Player viewer = Minecraft.getInstance().player;
+        String viewerFaction = null;
+        String viewerAlliance = null;
+        if (viewer != null) {
+            viewerFaction = ClientFactionData.getFaction(viewer.getUUID());
+            if (viewerFaction != null) {
+                viewerAlliance = ClientAllianceData.getAlliance(viewerFaction);
+            }
         }
-        else{
-            allianceAbbreviation = null;
-        }
+
+        ChatFormatting allianceColor = determineColor(factionName, allianceName, viewerFaction, viewerAlliance, true);
+        ChatFormatting factionColor = determineColor(factionName, allianceName, viewerFaction, viewerAlliance, false);
 
         MutableComponent displayText = Component.empty();
 
         if (allianceName != null) {
-            displayText.append(Component.literal("[")
-                    .withStyle(ChatFormatting.WHITE));
+            displayText.append(Component.literal("[").withStyle(ChatFormatting.WHITE));
 
-            displayText.append(Component.literal(allianceAbbreviation!=null ? allianceAbbreviation : allianceName)
-                    .withStyle(ChatFormatting.LIGHT_PURPLE)); // Color for Alliance
+            displayText.append(Component.literal(allianceAbbreviation != null ? allianceAbbreviation : allianceName).withStyle(allianceColor));
 
-            displayText.append(Component.literal("] ")
-                    .withStyle(ChatFormatting.WHITE));
+            displayText.append(Component.literal("] ").withStyle(ChatFormatting.WHITE));
         }
 
-        displayText.append(Component.literal("<")
-                .withStyle(ChatFormatting.WHITE));
+        displayText.append(Component.literal("<").withStyle(ChatFormatting.WHITE));
 
-        displayText.append(Component.literal(factionAbbreviation!=null ? factionAbbreviation : factionName)
-                .withStyle(ChatFormatting.AQUA)); // Color for Faction
+        displayText.append(Component.literal(factionAbbreviation != null ? factionAbbreviation : factionName).withStyle(factionColor));
 
-        displayText.append(Component.literal(">")
-                .withStyle(ChatFormatting.WHITE));
-
+        displayText.append(Component.literal(">").withStyle(ChatFormatting.WHITE));
 
         PoseStack poseStack = event.getPoseStack();
         poseStack.pushPose();
@@ -99,7 +101,7 @@ public class ClientEventHandler {
         float xOffset = -font.width(displayText) / 2.0f;
 
         float backgroundOpacity = Minecraft.getInstance().options.getBackgroundOpacity(0.25F);
-        int backgroundColor = (int)(backgroundOpacity * 255.0F) << 24;
+        int backgroundColor = (int) (backgroundOpacity * 255.0F) << 24;
 
         boolean isDiscrete = player.isDiscrete();
         int textColor = isDiscrete ? 0x20FFFFFF : 0xFFFFFFFF;
@@ -119,5 +121,33 @@ public class ClientEventHandler {
         );
 
         poseStack.popPose();
+    }
+
+    private static ChatFormatting determineColor(String renderedPlayerFaction, String renderedPlayerAlliance, String viewerFaction, String viewerAlliance, boolean isAllianceTag) {
+        if (isAllianceTag) {
+            if (viewerAlliance != null && viewerAlliance.equals(renderedPlayerAlliance)) {
+                return alliedAllianceColor;
+            }
+        } else {
+            if (viewerFaction != null && viewerFaction.equals(renderedPlayerFaction)) {
+                return alliedFactionColor;
+            }
+            if (viewerAlliance != null && viewerAlliance.equals(renderedPlayerAlliance)) {
+                // Same alliance, different faction
+                return friendlyFactionColor;
+            }
+        }
+
+        // The server sends flattened faction-to-faction relationships, even if derived from alliances.
+        RelationshipStatus status = ClientRelationshipData.getRelationship(renderedPlayerFaction);
+
+        if (status == RelationshipStatus.HOSTILE) {
+            return isAllianceTag ? hostileAllianceColor : hostileFactionColor;
+        }
+        if (status == RelationshipStatus.FRIENDLY) {
+            return isAllianceTag ? friendlyAllianceColor : friendlyFactionColor;
+        }
+
+        return isAllianceTag ? neutralAllianceColor : neutralFactionColor;
     }
 }
