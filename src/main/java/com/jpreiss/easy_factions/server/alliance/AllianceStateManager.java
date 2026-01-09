@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.server.alliance;
 
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.api.events.AllianceCreateEvent;
@@ -232,12 +233,37 @@ public class AllianceStateManager extends SavedData {
         return alliances.get(allianceName).getAbbreviation();
     }
 
+    public void setRelation(String otherAllianceName, ServerPlayer player, RelationshipStatus status) throws  RuntimeException {
+        MinecraftServer server = player.getServer();
+        if(server == null) throw  new RuntimeException("The player is null.");
+
+        FactionStateManager factionStateManager = FactionStateManager.get(player.getServer());
+        Faction playerFaction = factionStateManager.getFactionByPlayer(player.getUUID());
+        if(playerFaction == null) throw  new RuntimeException("Faction not found");
+
+        Alliance playerAlliance = this.getAllianceByFaction(playerFaction.getName());
+        Alliance otherAlliance = this.getAlliance(otherAllianceName);
+        if(playerAlliance == null ||otherAlliance == null) throw  new RuntimeException("The alliance does not exist");
+
+        if(status == RelationshipStatus.NEUTRAL){
+            otherAlliance.getIncomingRelations().remove(playerFaction.getName());
+            playerAlliance.getOutgoingRelations().remove(otherAllianceName);
+
+        }
+        else {
+            otherAlliance.getIncomingRelations().put(playerAlliance.getName(), status);
+            playerAlliance.getOutgoingRelations().put(otherAllianceName, status);
+        }
+        // TODO: send over network for tag
+        this.setDirty();
+    }
+
 
     /**
      * Loads the data from NBT
      */
     public static AllianceStateManager load(CompoundTag tag) {
-        AllianceStateManager data = new AllianceStateManager();
+        AllianceStateManager stateManager = new AllianceStateManager();
 
         if (tag.contains("Alliances", Tag.TAG_LIST)) {
             ListTag alliancesList = tag.getList("Alliances", Tag.TAG_COMPOUND);
@@ -247,18 +273,24 @@ public class AllianceStateManager extends SavedData {
             for (int i = 0; i < alliancesList.size(); i++) {
                 alliance = Alliance.deserialize(alliancesList.getCompound(i));
 
-
                 // Add to internal maps
-                data.alliances.put(alliance.getName(), alliance);
+                stateManager.alliances.put(alliance.getName(), alliance);
 
                 // Rebuild lookup map
                 for (String member : alliance.getMembers()) {
-                    data.factionAllianceMap.put(member, alliance.getName());
+                    stateManager.factionAllianceMap.put(member, alliance.getName());
                 }
             }
         }
 
-        return data;
+        // All alliances loaded. Populate incomingRelations for each
+        for (Alliance alliance : stateManager.alliances.values()) {
+            for(Map.Entry<String, RelationshipStatus> entry: alliance.getOutgoingRelations().entrySet()){
+                stateManager.alliances.get(entry.getKey()).getIncomingRelations().put(alliance.getName(), entry.getValue());
+            }
+        }
+
+        return stateManager;
     }
 
     /**

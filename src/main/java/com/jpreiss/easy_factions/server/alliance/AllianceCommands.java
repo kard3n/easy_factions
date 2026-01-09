@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.server.alliance;
 
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
@@ -12,6 +13,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.Objects;
 
 public class AllianceCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -159,15 +162,16 @@ public class AllianceCommands {
                 .then(Commands.literal("setAbbreviation")
                         .requires(source -> {
                             try {
+                                if (!ServerConfig.enableAbbreviation) {
+                                    return false;
+                                }
+
                                 MinecraftServer server = source.getServer();
                                 ServerPlayer player = source.getPlayerOrException();
                                 FactionStateManager factionManager = FactionStateManager.get(server);
                                 AllianceStateManager allianceManager = AllianceStateManager.get(server);
 
                                 Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
-                                if (!ServerConfig.enableAbbreviation) {
-                                    return false;
-                                }
 
                                 Alliance alliance = allianceManager.getAllianceByFaction(playerFaction.getName());
                                 if (alliance == null) return false;
@@ -198,8 +202,45 @@ public class AllianceCommands {
 
 
                                     return 1;
-                                })
-                        ))
+                                })))
+                .then(Commands.literal("setRelation")
+                        .requires(source -> {
+                            try {
+                                MinecraftServer server = source.getServer();
+                                ServerPlayer player = source.getPlayerOrException();
+                                FactionStateManager factionManager = FactionStateManager.get(server);
+                                AllianceStateManager allianceManager = AllianceStateManager.get(server);
+
+                                Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
+
+                                return allianceManager.getAllianceByFaction(playerFaction.getName()) != null;
+                            } catch (CommandSyntaxException | RuntimeException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("targetAlliance", StringArgumentType.greedyString())
+                                .suggests(OTHER_ALLIANCES)
+                                .then(Commands.argument("status", StringArgumentType.word())
+                                        .suggests(RelationshipStatus.RELATIONSHIP_STATUS)
+                                        .executes(context -> {
+                                            ServerPlayer player = context.getSource().getPlayerOrException();
+                                            String statusStr = StringArgumentType.getString(context, "status");
+                                            String targetAlliance = StringArgumentType.getString(context, "targetAlliance");
+                                            AllianceStateManager allianceManager = AllianceStateManager.get(context.getSource().getServer());
+
+
+                                            try {
+                                                RelationshipStatus status = RelationshipStatus.valueOf(statusStr);
+
+                                                allianceManager.setRelation(targetAlliance, player, status);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetAlliance + " to " + status.name()), false);
+                                            } catch (IllegalArgumentException e) {
+                                                context.getSource().sendFailure(Component.literal("Invalid relationship status: " + statusStr));
+                                            } catch (RuntimeException e) {
+                                                context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                            }
+                                            return 1;
+                                        }))))
 
         );
     }
@@ -242,5 +283,28 @@ public class AllianceCommands {
             builder.suggest(factionName);
         }
         return builder.buildFuture();
+    };
+
+    /**
+     * Suggests all other alliances
+     */
+    private static final SuggestionProvider<CommandSourceStack> OTHER_ALLIANCES = (context, builder) -> {
+        FactionStateManager factionManager = FactionStateManager.get(context.getSource().getServer());
+        AllianceStateManager stateManager = AllianceStateManager.get(context.getSource().getServer());
+
+        try{
+            Alliance alliance = stateManager.getAllianceByFaction(factionManager.getFactionByPlayer(Objects.requireNonNull(context.getSource().getPlayer()).getUUID()).getName());
+            if(alliance == null) return builder.buildFuture();
+
+            for (String allianceName: stateManager.getAllianceNames()){
+                if(!allianceName.equals(alliance.getName())){
+                    builder.suggest(allianceName);
+                }
+
+            }
+        }
+        catch (NullPointerException ignore){}
+
+        return  builder.buildFuture();
     };
 }

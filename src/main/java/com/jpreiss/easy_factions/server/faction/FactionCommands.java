@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.server.faction;
 
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -15,6 +16,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class FactionCommands {
@@ -267,6 +269,35 @@ public class FactionCommands {
 
                                     return 1;
                                 })))
+                .then(Commands.literal("setRelation")
+                        .requires(source -> {
+                            try {
+                                return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("targetFaction", StringArgumentType.greedyString())
+                                .suggests(OTHER_FACTIONS)
+                                .then(Commands.argument("status", StringArgumentType.word())
+                                        .suggests(RelationshipStatus.RELATIONSHIP_STATUS)
+                                        .executes(context -> {
+                                            ServerPlayer player = context.getSource().getPlayerOrException();
+                                            String newStatus = StringArgumentType.getString(context, "status");
+                                            String targetFaction = StringArgumentType.getString(context, "targetFaction");
+                                            FactionStateManager stateManager = FactionStateManager.get(context.getSource().getServer());
+
+                                            try {
+                                                RelationshipStatus status = RelationshipStatus.valueOf(newStatus);
+                                                stateManager.setRelation(targetFaction, player, status);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetFaction + " to " + status.name()), false);
+                                            } catch (IllegalArgumentException e) {
+                                                context.getSource().sendFailure(Component.literal("Invalid relationship status: " + newStatus));
+                                            } catch (RuntimeException e) {
+                                                context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                            }
+                                            return 1;
+                                        }))))
 
         );
     }
@@ -364,5 +395,25 @@ public class FactionCommands {
         }
 
         return builder.buildFuture();
+    };
+
+    /**
+     * Suggests all other factions
+     */
+    private static final SuggestionProvider<CommandSourceStack> OTHER_FACTIONS = (context, builder) -> {
+        FactionStateManager stateManager = FactionStateManager.get(context.getSource().getServer());
+        try{
+            String playerFactionName = stateManager.getFactionByPlayer(Objects.requireNonNull(context.getSource().getPlayer()).getUUID()).getName();
+            for (String factionName : stateManager.getAllFactionNames()) {
+                if(!playerFactionName.equals(factionName)){
+                    builder.suggest(factionName);
+                }
+            }
+        }
+        catch (NullPointerException ignored){
+
+        }
+        return builder.buildFuture();
+
     };
 }

@@ -1,10 +1,13 @@
 package com.jpreiss.easy_factions.server.faction;
 
+import com.jpreiss.easy_factions.common.RelationshipSerializer;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -17,6 +20,12 @@ public class Faction {
     private Set<UUID> officers = new HashSet<>();
     private Set<UUID> invited = new HashSet<>();
     private boolean friendlyFire = false;
+    // Outgoing relations (what this faction set the status of others too)
+    // Faction name, status
+    private HashMap<String, RelationshipStatus> outgoingRelations = new HashMap<>();
+    // Incoming relations (what others set the status of this faction too)
+    // Faction name, status
+    private HashMap<String, RelationshipStatus> incomingRelations = new HashMap<>();
 
     public Faction(String name, String abbreviation, UUID owner) {
         this.name = name;
@@ -85,10 +94,26 @@ public class Faction {
         this.abbreviation = abbreviation;
     }
 
-    public static Faction deserialize(CompoundTag fTag){
+    public HashMap<String, RelationshipStatus> getIncomingRelations() {
+        return incomingRelations;
+    }
+
+    public void setIncomingRelations(HashMap<String, RelationshipStatus> incomingRelations) {
+        this.incomingRelations = incomingRelations;
+    }
+
+    public HashMap<String, RelationshipStatus> getOutgoingRelations() {
+        return outgoingRelations;
+    }
+
+    public void setOutgoingRelations(HashMap<String, RelationshipStatus> outgoingRelations) {
+        this.outgoingRelations = outgoingRelations;
+    }
+
+    public static Faction deserialize(CompoundTag fTag) {
         String name = fTag.getString("Name");
         String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
-        if(abbreviation != null && abbreviation.isEmpty()){
+        if (abbreviation != null && abbreviation.isEmpty()) {
             abbreviation = null;
         }
         UUID owner = fTag.getUUID("Owner");
@@ -115,10 +140,14 @@ public class Faction {
             faction.getOfficers().add(NbtUtils.loadUUID(value));
         }
 
+        // Add outgoing relatioships
+        ListTag outgoingRelationsTag = fTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
+        faction.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+
         return faction;
     }
 
-    public CompoundTag serialize(){
+    public CompoundTag serialize() {
         CompoundTag fTag = new CompoundTag();
 
         String abbreviation = this.getAbbreviation();
@@ -150,6 +179,9 @@ public class Faction {
             officersTag.add(NbtUtils.createUUID(officer));
         }
         fTag.put("Officers", officersTag);
+
+        // Save outgoing relations
+        fTag.put("OutgoingRelations", RelationshipSerializer.serialize(this.getOutgoingRelations()));
 
         return fTag;
     }

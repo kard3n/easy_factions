@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.server.faction;
 
 import com.jpreiss.easy_factions.Utils;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
@@ -273,6 +274,23 @@ public class FactionStateManager extends SavedData {
         this.setDirty();
     }
 
+    public void setRelation(String otherFactionName, ServerPlayer player, RelationshipStatus status) throws  RuntimeException {
+        Faction playerFaction = getFactionByPlayer(player.getUUID());
+        Faction otherFaction = getFactionByName(otherFactionName);
+        if(playerFaction == null || otherFaction == null) throw  new RuntimeException("The faction does not exist");
+
+        if(status == RelationshipStatus.NEUTRAL){
+            playerFaction.getOutgoingRelations().remove(otherFactionName);
+            otherFaction.getIncomingRelations().remove(playerFaction.getName());
+        }
+        else {
+            playerFaction.getOutgoingRelations().put(otherFactionName, status);
+            otherFaction.getIncomingRelations().put(playerFaction.getName(), status);
+        }
+        // TODO: send over network for tag
+        this.setDirty();
+    }
+
     public Faction getFactionByPlayer(UUID player) {
         String name = playerFactionMap.get(player);
         return name != null ? factions.get(name) : null;
@@ -371,7 +389,7 @@ public class FactionStateManager extends SavedData {
      * Loads the data from NBT
      */
     public static FactionStateManager load(CompoundTag tag) {
-        FactionStateManager data = new FactionStateManager();
+        FactionStateManager stateManager = new FactionStateManager();
 
         if (tag.contains("Factions", Tag.TAG_LIST)) {
             ListTag list = tag.getList("Factions", Tag.TAG_COMPOUND);
@@ -381,14 +399,20 @@ public class FactionStateManager extends SavedData {
                 faction = Faction.deserialize(list.getCompound(i));
 
                 // Populate Maps
-                data.factions.put(faction.getName(), faction);
+                stateManager.factions.put(faction.getName(), faction);
                 for (UUID member : faction.getMembers()) {
-                    data.playerFactionMap.put(member, faction.getName());
+                    stateManager.playerFactionMap.put(member, faction.getName());
                 }
             }
         }
+        // All factions loaded. Populate incomingRelations for each faction
+        for (Faction faction : stateManager.factions.values()) {
+            for(Map.Entry<String, RelationshipStatus> entry: faction.getOutgoingRelations().entrySet()){
+                stateManager.factions.get(entry.getKey()).getIncomingRelations().put(faction.getName(), entry.getValue());
+            }
+        }
 
-        return data;
+        return stateManager;
     }
 
     /**
