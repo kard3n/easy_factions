@@ -290,7 +290,7 @@ public class FactionCommands {
                                             try {
                                                 RelationshipStatus status = RelationshipStatus.valueOf(newStatus);
                                                 stateManager.setRelation(targetFaction, player, status);
-                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetFaction + " to " + status.name()), false);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetFaction + " to " + status.name() + ".\nThe relation between your factions will be the lowest one between the one set by you and the one ste by them."), false);
                                             } catch (IllegalArgumentException e) {
                                                 context.getSource().sendFailure(Component.literal("Invalid relationship status: " + newStatus));
                                             } catch (RuntimeException e) {
@@ -402,15 +402,14 @@ public class FactionCommands {
      */
     private static final SuggestionProvider<CommandSourceStack> OTHER_FACTIONS = (context, builder) -> {
         FactionStateManager stateManager = FactionStateManager.get(context.getSource().getServer());
-        try{
+        try {
             String playerFactionName = stateManager.getFactionByPlayer(Objects.requireNonNull(context.getSource().getPlayer()).getUUID()).getName();
             for (String factionName : stateManager.getAllFactionNames()) {
-                if(!playerFactionName.equals(factionName)){
+                if (!playerFactionName.equals(factionName)) {
                     builder.suggest(factionName);
                 }
             }
-        }
-        catch (NullPointerException ignored){
+        } catch (NullPointerException ignored) {
 
         }
         return builder.buildFuture();
