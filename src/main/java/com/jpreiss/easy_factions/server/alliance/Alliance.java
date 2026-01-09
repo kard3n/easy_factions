@@ -102,8 +102,11 @@ public class Alliance {
         Alliance alliance = new Alliance(name, abbreviation, members);
         alliance.getInvited().addAll(invited);
 
-        ListTag outgoingRelationsTag = allianceTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
-        alliance.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+        if(allianceTag.contains("OutgoingRelations", Tag.TAG_LIST)){
+            ListTag outgoingRelationsTag = allianceTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
+            alliance.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+        }
+
 
         return alliance;
     }

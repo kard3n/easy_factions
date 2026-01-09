@@ -140,9 +140,11 @@ public class Faction {
             faction.getOfficers().add(NbtUtils.loadUUID(value));
         }
 
-        // Add outgoing relatioships
-        ListTag outgoingRelationsTag = fTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
-        faction.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+        // Add outgoing relationships
+        if(fTag.contains("OutgoingRelations", Tag.TAG_LIST)){
+            ListTag outgoingRelationsTag = fTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
+            faction.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+        }
 
         return faction;
     }
