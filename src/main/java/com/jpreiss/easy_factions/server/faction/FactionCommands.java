@@ -290,7 +290,7 @@ public class FactionCommands {
                                             try {
                                                 RelationshipStatus status = RelationshipStatus.valueOf(newStatus);
                                                 stateManager.setRelation(targetFaction, player, status);
-                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetFaction + " to " + status.name() + ".\nThe relation between your factions will be the lowest one between the one set by you and the one ste by them."), false);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetFaction + " to " + status.name() + ".\nThe relation between your factions will be the lowest one between the one set by you and the one set by them."), false);
                                             } catch (IllegalArgumentException e) {
                                                 context.getSource().sendFailure(Component.literal("Invalid relationship status: " + newStatus));
                                             } catch (RuntimeException e) {

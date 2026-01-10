@@ -233,7 +233,7 @@ public class AllianceCommands {
                                                 RelationshipStatus status = RelationshipStatus.valueOf(statusStr);
 
                                                 allianceManager.setRelation(targetAlliance, player, status);
-                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetAlliance + " to " + status.name()  + ".\nThe relation between your alliances will be the lowest one between the one set by you and the one ste by them."), false);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetAlliance + " to " + status.name()  + ".\nThe relation between your alliances will be the lowest one between the one set by you and the one set by them."), false);
                                             } catch (IllegalArgumentException e) {
                                                 context.getSource().sendFailure(Component.literal("Invalid relationship status: " + statusStr));
                                             } catch (RuntimeException e) {
