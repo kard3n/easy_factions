@@ -298,7 +298,13 @@ public class AllianceCommands {
 
             for (String allianceName: stateManager.getAllianceNames()){
                 if(!allianceName.equals(alliance.getName())){
-                    builder.suggest(allianceName);
+                    if(allianceName.contains(" ")){
+                        builder.suggest("\"" + allianceName + "\"");
+                    }
+                    else{
+                        builder.suggest(allianceName);
+                    }
+
                 }
 
             }

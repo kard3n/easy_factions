@@ -406,7 +406,11 @@ public class FactionCommands {
             String playerFactionName = stateManager.getFactionByPlayer(Objects.requireNonNull(context.getSource().getPlayer()).getUUID()).getName();
             for (String factionName : stateManager.getAllFactionNames()) {
                 if (!playerFactionName.equals(factionName)) {
-                    builder.suggest(factionName);
+                    if (factionName.contains(" ")) {
+                        builder.suggest("\"" + factionName + "\"");
+                    } else {
+                        builder.suggest(factionName);
+                    }
                 }
             }
         } catch (NullPointerException ignored) {
