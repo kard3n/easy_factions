@@ -1,6 +1,6 @@
-package com.jpreiss.easy_factions.network.packet;
+package com.jpreiss.easy_factions.network.packet.data_sync;
 
-import com.jpreiss.easy_factions.client.ClientAllianceData;
+import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;

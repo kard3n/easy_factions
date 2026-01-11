@@ -6,6 +6,7 @@ import com.jpreiss.easy_factions.server.alliance.AllianceCommands;
 import com.jpreiss.easy_factions.server.faction.FactionCommands;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -19,6 +20,8 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.network.NetworkConstants;
+
+import static com.jpreiss.easy_factions.client.Keybinds.OPEN_FACTION_GUI;
 //import org.slf4j.Logger;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -81,6 +84,11 @@ public class EasyFactions
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
+        }
+
+        @SubscribeEvent
+        public static void registerBindings(RegisterKeyMappingsEvent event) {
+            event.register(OPEN_FACTION_GUI);
         }
     }
 }

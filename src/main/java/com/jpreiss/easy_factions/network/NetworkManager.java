@@ -1,6 +1,6 @@
 package com.jpreiss.easy_factions.network;
 
-import com.jpreiss.easy_factions.network.packet.*;
+import com.jpreiss.easy_factions.network.packet.data_sync.*;
 import com.jpreiss.easy_factions.server.RelationshipCalculator;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;

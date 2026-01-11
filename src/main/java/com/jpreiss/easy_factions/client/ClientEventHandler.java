@@ -1,7 +1,12 @@
 package com.jpreiss.easy_factions.client;
 
 import com.jpreiss.easy_factions.EasyFactions;
+import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
+import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
+import com.jpreiss.easy_factions.client.data_store.ClientRelationshipData;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
+import com.jpreiss.easy_factions.network.NetworkHandler;
+import com.jpreiss.easy_factions.network.packet.gui.PacketOpenFactionGui;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -11,9 +16,12 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderNameTagEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
+
+import static com.jpreiss.easy_factions.client.Keybinds.OPEN_FACTION_GUI;
 
 @Mod.EventBusSubscriber(modid = EasyFactions.MODID, value = Dist.CLIENT)
 public class ClientEventHandler {
@@ -149,5 +157,13 @@ public class ClientEventHandler {
         }
 
         return isAllianceTag ? neutralAllianceColor : neutralFactionColor;
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.END && OPEN_FACTION_GUI.consumeClick()) {
+            // Instead of opening GUI directly, ask server for data
+            NetworkHandler.CHANNEL.sendToServer(new PacketOpenFactionGui());
+        }
     }
 }

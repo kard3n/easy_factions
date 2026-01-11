@@ -11,7 +11,6 @@ import com.jpreiss.easy_factions.server.api.events.FactionJoinEvent;
 import com.jpreiss.easy_factions.server.api.events.FactionLeaveEvent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -69,16 +68,36 @@ public class FactionStateManager extends SavedData {
     /**
      * Invite a player to the faction
      */
-    public String invitePlayer(ServerPlayer invitingUser, ServerPlayer invitedUser) throws RuntimeException {
+    public void revokeInvitation(ServerPlayer revokingUser, UUID revokedUser) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(revokingUser.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
+        Faction faction = getFactionByPlayer(revokingUser.getUUID());
+
+        faction.getInvited().remove(revokedUser);
+
+        this.setDirty();
+    }
+
+    /**
+     * Invite a player to the faction
+     */
+    public String invitePlayer(ServerPlayer invitingUser, UUID invitedUser) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(invitingUser.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
         Faction faction = getFactionByPlayer(invitingUser.getUUID());
         if (faction.getMembers().size() >= MAX_FACTION_SIZE)
             throw new RuntimeException("Your faction is already full. Please remove members before you invite more.");
 
-        faction.getInvited().add(invitedUser.getUUID());
+        faction.getInvited().add(invitedUser);
 
         this.setDirty();
 
         return faction.getName();
+    }
+
+    /**
+     * Invite a player to the faction
+     */
+    public String invitePlayer(ServerPlayer invitingUser, ServerPlayer invitedUser) throws RuntimeException {
+        return invitePlayer(invitingUser, invitedUser.getUUID());
     }
 
     /**
@@ -133,11 +152,20 @@ public class FactionStateManager extends SavedData {
      * @throws RuntimeException if the player doesn't exist
      */
     public void kickFromFaction(ServerPlayer kickingUser, String targetName, MinecraftServer server) throws RuntimeException {
-        if (kickingUser.getName().getString().equals(targetName))
-            throw new RuntimeException("You can't kick yourself from the faction!");
-
-        // Look up UUID of the player, in case they are offline
         UUID targetUUID = Utils.getPlayerUUIDOffline(targetName, server);
+        kickFromFaction(kickingUser, targetUUID, server);
+    }
+
+    /**
+     * Leave the faction. If the owner leaves it, it is disbanded
+     *
+     * @param kickingUser The person executing this
+     * @param targetUUID  UUID of the player being kicked
+     * @throws RuntimeException if the player doesn't exist
+     */
+    public void kickFromFaction(ServerPlayer kickingUser, UUID targetUUID, MinecraftServer server) throws RuntimeException {
+        if (kickingUser.getUUID().equals(targetUUID))
+            throw new RuntimeException("You can't kick yourself from the faction!");
 
         String targetFactionName = playerFactionMap.get(targetUUID);
         Faction kickingUserFaction = getFactionByPlayer(kickingUser.getUUID());
@@ -224,9 +252,8 @@ public class FactionStateManager extends SavedData {
     /**
      * Makes an existing faction member an officer
      */
-    public void addOfficer(String newOfficerName, ServerPlayer invitingLeader, MinecraftServer server) throws RuntimeException {
-        UUID newOfficer = Utils.getPlayerUUIDOffline(newOfficerName, server); // Works offline
-
+    public void addOfficer(UUID newOfficer, ServerPlayer invitingLeader, MinecraftServer server) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(invitingLeader.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
         Faction officerFaction = getFactionByPlayer(newOfficer);
         if (officerFaction == null) throw new RuntimeException("Can only invite faction members!");
         Faction leaderFaction = getOwnedFaction(invitingLeader.getUUID());
@@ -251,11 +278,18 @@ public class FactionStateManager extends SavedData {
     }
 
     /**
+     * Makes an existing faction member an officer
+     */
+    public void addOfficer(String newOfficerName, ServerPlayer invitingLeader, MinecraftServer server) throws RuntimeException {
+        UUID newOfficer = Utils.getPlayerUUIDOffline(newOfficerName, server); // Works offline
+        addOfficer(newOfficer, invitingLeader, server);
+    }
+
+    /**
      * Demotes an officer
      */
-    public void removeOfficer(String officerName, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
-        UUID newOfficer = Utils.getPlayerUUIDOffline(officerName, server); // Works offline
-
+    public void removeOfficer(UUID newOfficer, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(leader.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
         Faction leaderFaction = getOwnedFaction(leader.getUUID());
 
         if (!leaderFaction.getOfficers().contains(newOfficer)) {
@@ -274,16 +308,23 @@ public class FactionStateManager extends SavedData {
         this.setDirty();
     }
 
-    public void setRelation(String otherFactionName, ServerPlayer player, RelationshipStatus status) throws  RuntimeException {
+    /**
+     * Demotes an officer
+     */
+    public void removeOfficer(String officerName, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
+        UUID newOfficer = Utils.getPlayerUUIDOffline(officerName, server); // Works offline
+        removeOfficer(newOfficer, leader, server);
+    }
+
+    public void setRelation(String otherFactionName, ServerPlayer player, RelationshipStatus status) throws RuntimeException {
         Faction playerFaction = getFactionByPlayer(player.getUUID());
         Faction otherFaction = getFactionByName(otherFactionName);
-        if(playerFaction == null || otherFaction == null) throw  new RuntimeException("The faction does not exist");
+        if (playerFaction == null || otherFaction == null) throw new RuntimeException("The faction does not exist");
 
-        if(status == RelationshipStatus.NEUTRAL){
+        if (status == RelationshipStatus.NEUTRAL) {
             playerFaction.getOutgoingRelations().remove(otherFactionName);
             otherFaction.getIncomingRelations().remove(playerFaction.getName());
-        }
-        else {
+        } else {
             playerFaction.getOutgoingRelations().put(otherFactionName, status);
             otherFaction.getIncomingRelations().put(playerFaction.getName(), status);
         }
@@ -409,7 +450,7 @@ public class FactionStateManager extends SavedData {
         }
         // All factions loaded. Populate incomingRelations for each faction
         for (Faction faction : stateManager.factions.values()) {
-            for(Map.Entry<String, RelationshipStatus> entry: faction.getOutgoingRelations().entrySet()){
+            for (Map.Entry<String, RelationshipStatus> entry : faction.getOutgoingRelations().entrySet()) {
                 stateManager.factions.get(entry.getKey()).getIncomingRelations().put(faction.getName(), entry.getValue());
             }
         }

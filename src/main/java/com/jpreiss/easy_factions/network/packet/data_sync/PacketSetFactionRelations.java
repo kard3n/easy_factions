@@ -1,6 +1,6 @@
-package com.jpreiss.easy_factions.network.packet;
+package com.jpreiss.easy_factions.network.packet.data_sync;
 
-import com.jpreiss.easy_factions.client.ClientRelationshipData;
+import com.jpreiss.easy_factions.client.data_store.ClientRelationshipData;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;

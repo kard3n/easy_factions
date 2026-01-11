@@ -1,7 +1,11 @@
 package com.jpreiss.easy_factions.network;
 
 import com.jpreiss.easy_factions.EasyFactions;
-import com.jpreiss.easy_factions.network.packet.*;
+import com.jpreiss.easy_factions.network.packet.data_sync.*;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionGuiAction;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionMemberOperation;
+import com.jpreiss.easy_factions.network.packet.gui.PacketOpenFactionGui;
+import com.jpreiss.easy_factions.network.packet.gui.PacketSyncFactionGuiData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,6 +31,10 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketUpdateFactionAbbreviation.class, PacketUpdateFactionAbbreviation::encode, PacketUpdateFactionAbbreviation::decode, PacketUpdateFactionAbbreviation::handle);
         CHANNEL.registerMessage(id++, PacketUpdateAllianceAbbreviation.class, PacketUpdateAllianceAbbreviation::encode, PacketUpdateAllianceAbbreviation::decode, PacketUpdateAllianceAbbreviation::handle);
         CHANNEL.registerMessage(id++, PacketSetFactionRelations.class, PacketSetFactionRelations::encode, PacketSetFactionRelations::decode, PacketSetFactionRelations::handle);
+        CHANNEL.registerMessage(id++, PacketFactionGuiAction.class, PacketFactionGuiAction::encode, PacketFactionGuiAction::decode, PacketFactionGuiAction::handle);
+        CHANNEL.registerMessage(id++, PacketOpenFactionGui.class, PacketOpenFactionGui::encode, PacketOpenFactionGui::decode, PacketOpenFactionGui::handle);
+        CHANNEL.registerMessage(id++, PacketSyncFactionGuiData.class, PacketSyncFactionGuiData::encode, PacketSyncFactionGuiData::decode, PacketSyncFactionGuiData::handle);
+        CHANNEL.registerMessage(id++, PacketFactionMemberOperation.class, PacketFactionMemberOperation::encode, PacketFactionMemberOperation::decode, PacketFactionMemberOperation::handle);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.jpreiss.easy_factions.client;
+package com.jpreiss.easy_factions.client.data_store;
 
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 
