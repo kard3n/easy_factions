@@ -2,6 +2,7 @@ package com.jpreiss.easy_factions.network.packet.gui;
 
 import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.common.MemberRank;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
@@ -74,8 +75,11 @@ public class PacketOpenFactionGui {
                     playerNames.put(playerName, name);
                 }
 
+                Map<String, RelationshipStatus> outgoingRelationships = faction.getOutgoingRelations();
+                List<String> factionNames = manager.getAllFactionNames().stream().toList();
 
-                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers);
+
+                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames);
             } else {
                 // Player is NOT in a faction -> Return pending invites
                 response = new PacketSyncFactionGuiData(manager.getInvitesForPlayer(player.getUUID()));

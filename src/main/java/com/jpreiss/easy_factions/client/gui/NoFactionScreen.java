@@ -1,7 +1,8 @@
 package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.network.NetworkHandler;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionGuiAction;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionCreateAction;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionJoinAction;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -47,7 +48,7 @@ public class NoFactionScreen extends Screen {
             this.addRenderableWidget(new Button.Builder(Component.literal("Confirm Create"), button -> {
                 String name = nameField.getValue();
                 if (!name.isEmpty()) {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionGuiAction(PacketFactionGuiAction.Action.CREATE, name));
+                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionCreateAction(name));
                     this.onClose();
                 }
             }).bounds(centerX - 82, centerY + 10, 80, 20).build());
@@ -70,7 +71,7 @@ public class NoFactionScreen extends Screen {
                 if (y > this.topPos + this.imageHeight - 20) break; // Boundary check
 
                 this.addRenderableWidget(new Button.Builder(Component.literal("Join " + invite), button -> {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionGuiAction(PacketFactionGuiAction.Action.JOIN, invite));
+                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionJoinAction(invite));
                     this.onClose();
                 }).bounds(centerX - 80, y, 160, 20).build());
                 y += 25;

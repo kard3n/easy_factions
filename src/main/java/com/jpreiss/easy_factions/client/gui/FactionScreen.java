@@ -1,7 +1,9 @@
 package com.jpreiss.easy_factions.client.gui;
 
 
+import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.common.MemberRank;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class FactionScreen extends Screen {
@@ -38,8 +41,10 @@ public class FactionScreen extends Screen {
 
     private ScrollableFactionMemberList memberList;
     private ScrollableFactionInviteList inviteList;
-    private MainTab currentMainTab = MainTab.FACTION;
-    private FactionTab currentFactionTab = FactionTab.MEMBERS;
+    private ScrollableFactionRelationsList relationsList;
+
+    private static MainTab currentMainTab = MainTab.FACTION;
+    private static FactionTab currentFactionTab = FactionTab.MEMBERS;
 
     // Data
     private final String factionName;
@@ -47,8 +52,11 @@ public class FactionScreen extends Screen {
     private final Map<UUID, String> playerNames; // UUID -> Name
     private final UUID clientPlayerUUID;
     private final List<UUID> factionInvites;
+    private final Map<String, RelationshipStatus> outgoingFactionRelations;
+    private final List<String> factionNames;
 
-    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites) {
+
+    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames) {
         super(Component.literal("Easy Factions"));
         this.factionName = factionName;
         this.memberRanks = memberRanks;
@@ -56,6 +64,8 @@ public class FactionScreen extends Screen {
         assert Minecraft.getInstance().player != null;
         this.clientPlayerUUID = Minecraft.getInstance().player.getUUID();
         this.factionInvites = factionInvites;
+        this.outgoingFactionRelations = outgoingFactionRelations;
+        this.factionNames = factionNames;
     }
 
     @Override
@@ -96,15 +106,15 @@ public class FactionScreen extends Screen {
     }
 
     private void switchTab(MainTab mainTab) {
-        if (this.currentMainTab != mainTab) {
-            this.currentMainTab = mainTab;
+        if (currentMainTab != mainTab) {
+            currentMainTab = mainTab;
             this.rebuildWidgets();
         }
     }
 
     private void switchFactionTab(FactionTab factionTab) {
-        if (this.currentFactionTab != factionTab) {
-            this.currentFactionTab = factionTab;
+        if (currentFactionTab != factionTab) {
+            currentFactionTab = factionTab;
             this.rebuildWidgets();
         }
     }
@@ -121,7 +131,7 @@ public class FactionScreen extends Screen {
                     this.switchFactionTab(FactionTab.MEMBERS);
                 })
                 .bounds(buttonStartX, headerStartY, headerButtonWidth, buttonHeight).build();
-        membersBtn.active = (this.currentFactionTab != FactionTab.MEMBERS);
+        membersBtn.active = (currentFactionTab != FactionTab.MEMBERS);
         this.addRenderableWidget(membersBtn);
 
         // Invites button
@@ -129,7 +139,7 @@ public class FactionScreen extends Screen {
                     this.switchFactionTab(FactionTab.INVITES);
                 })
                 .bounds(buttonStartX + headerButtonWidth + this.spacing, headerStartY, headerButtonWidth, buttonHeight).build();
-        invitesBtn.active = (this.currentFactionTab != FactionTab.INVITES);
+        invitesBtn.active = (currentFactionTab != FactionTab.INVITES);
         this.addRenderableWidget(invitesBtn);
 
         // Relations button
@@ -137,7 +147,7 @@ public class FactionScreen extends Screen {
                     this.switchFactionTab(FactionTab.RELATIONS);
                 })
                 .bounds(buttonStartX + (headerButtonWidth + this.spacing) * 2, headerStartY, headerButtonWidth, buttonHeight).build();
-        relationsBtn.active = (this.currentFactionTab != FactionTab.RELATIONS);
+        relationsBtn.active = (currentFactionTab != FactionTab.RELATIONS);
         this.addRenderableWidget(relationsBtn);
 
         // Set where the tab object should start and end
@@ -193,7 +203,27 @@ public class FactionScreen extends Screen {
     }
 
     private void initFactionRelationsTab(int topY, int bottomY){
+        if (this.relationsList == null) {
+            this.relationsList = new ScrollableFactionRelationsList(this.minecraft, this.width, this.height, topY, bottomY, 30);
 
+            boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
+
+            for (Map.Entry<String, RelationshipStatus> entry : outgoingFactionRelations.entrySet()) {
+                this.relationsList.addFaction(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
+            }
+
+            for(String factionName: factionNames){
+                if (!outgoingFactionRelations.containsKey(factionName) && !this.factionName.equals(factionName)){
+                    this.relationsList.addFaction(factionName, RelationshipStatus.NEUTRAL, playerIsOwnerOrOfficer);
+                }
+            }
+
+        } else {
+            // Resize in case it already exists and the scale has updated
+            this.relationsList.updateSize(this.width, this.height, topY, bottomY);
+        }
+
+        this.addRenderableWidget(this.relationsList);
     }
 
 

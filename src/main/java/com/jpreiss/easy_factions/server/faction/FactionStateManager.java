@@ -317,6 +317,8 @@ public class FactionStateManager extends SavedData {
     }
 
     public void setRelation(String otherFactionName, ServerPlayer player, RelationshipStatus status) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(player.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
+
         Faction playerFaction = getFactionByPlayer(player.getUUID());
         Faction otherFaction = getFactionByName(otherFactionName);
         if (playerFaction == null || otherFaction == null) throw new RuntimeException("The faction does not exist");

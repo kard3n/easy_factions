@@ -3,6 +3,7 @@ package com.jpreiss.easy_factions.network.packet.gui;
 import com.jpreiss.easy_factions.client.gui.FactionScreen;
 import com.jpreiss.easy_factions.client.gui.NoFactionScreen;
 import com.jpreiss.easy_factions.common.MemberRank;
+import com.jpreiss.easy_factions.common.RelationshipStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -19,15 +20,19 @@ public class PacketSyncFactionGuiData {
     private final Map<UUID, String> playerNames; // UUID -> Name for all currently online server players, those invited and those who are members
     private final List<UUID> factionInvites; // UUIDs of all players invited to the player's faction
     private final List<String> playerInvites; // Names of the factions the player is invited to
+    private final Map<String, RelationshipStatus> outgoingRelationships; // The relationship this faction set for others
+    private final List<String> factionNames; // All known faction names
 
     // Constructor for when player IS in a faction
-    public PacketSyncFactionGuiData(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites) {
+    public PacketSyncFactionGuiData(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingRelationships, List<String> factionNames) {
         this.inFaction = true;
         this.factionName = factionName;
         this.memberRanks = memberRanks;
         this.playerNames = playerNames;
         this.factionInvites = factionInvites;
         this.playerInvites = new ArrayList<>();
+        this.outgoingRelationships = outgoingRelationships;
+        this.factionNames = factionNames;
     }
 
     // Constructor for when player is NOT in a faction
@@ -38,17 +43,21 @@ public class PacketSyncFactionGuiData {
         this.playerNames = new HashMap<>();
         this.factionInvites = new ArrayList<>();
         this.playerInvites = playerInvites;
+        this.outgoingRelationships = new HashMap<>();
+        this.factionNames = new ArrayList<>();
+
     }
 
     // Internal constructor for decoding
-    public PacketSyncFactionGuiData(boolean inFaction, String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<String> playerInvites, List<UUID> factionInvites) {
+    public PacketSyncFactionGuiData(boolean inFaction, String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<String> playerInvites, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingRelationships, List<String> factionNames) {
         this.inFaction = inFaction;
         this.factionName = factionName;
         this.memberRanks = memberRanks;
         this.playerNames = playerNames;
         this.playerInvites = playerInvites;
         this.factionInvites = factionInvites;
-
+        this.outgoingRelationships = outgoingRelationships;
+        this.factionNames = factionNames;
     }
 
     public static void encode(PacketSyncFactionGuiData msg, FriendlyByteBuf buf) {
@@ -58,6 +67,8 @@ public class PacketSyncFactionGuiData {
         buf.writeMap(msg.playerNames, FriendlyByteBuf::writeUUID, FriendlyByteBuf::writeUtf);
         buf.writeCollection(msg.playerInvites, FriendlyByteBuf::writeUtf);
         buf.writeCollection(msg.factionInvites, FriendlyByteBuf::writeUUID);
+        buf.writeMap(msg.outgoingRelationships, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
+        buf.writeCollection(msg.factionNames, FriendlyByteBuf::writeUtf);
     }
 
     public static PacketSyncFactionGuiData decode(FriendlyByteBuf buf) {
@@ -67,14 +78,16 @@ public class PacketSyncFactionGuiData {
                 buf.readMap(FriendlyByteBuf::readUUID, b -> b.readEnum(MemberRank.class)),
                 buf.readMap(FriendlyByteBuf::readUUID, FriendlyByteBuf::readUtf),
                 buf.readList(FriendlyByteBuf::readUtf),
-                buf.readList(FriendlyByteBuf::readUUID)
+                buf.readList(FriendlyByteBuf::readUUID),
+                buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class)),
+                buf.readList(FriendlyByteBuf::readUtf)
         );
     }
 
     public static void handle(PacketSyncFactionGuiData msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (msg.inFaction) {
-                Minecraft.getInstance().setScreen(new FactionScreen(msg.factionName, msg.memberRanks, msg.playerNames, msg.factionInvites));
+                Minecraft.getInstance().setScreen(new FactionScreen(msg.factionName, msg.memberRanks, msg.playerNames, msg.factionInvites, msg.outgoingRelationships, msg.factionNames));
             } else {
                 Minecraft.getInstance().setScreen(new NoFactionScreen(msg.playerInvites));
             }

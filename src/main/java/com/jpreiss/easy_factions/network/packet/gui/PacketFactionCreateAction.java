@@ -1,0 +1,49 @@
+package com.jpreiss.easy_factions.network.packet.gui;
+
+import com.jpreiss.easy_factions.server.faction.FactionStateManager;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkEvent;
+
+import java.util.function.Supplier;
+
+/**
+ * Client -> Server packet for creating a faction
+ */
+public class PacketFactionCreateAction {
+
+    private final String factionName;
+
+    public PacketFactionCreateAction(String factionName) {
+        this.factionName = factionName;
+    }
+
+    public static void encode(PacketFactionCreateAction msg, FriendlyByteBuf buf) {
+        buf.writeUtf(msg.factionName);
+    }
+
+    public static PacketFactionCreateAction decode(FriendlyByteBuf buf) {
+        return new PacketFactionCreateAction(buf.readUtf());
+    }
+
+    public static void handle(PacketFactionCreateAction msg, Supplier<NetworkEvent.Context> ctx) {
+        ctx.get().enqueueWork(() -> {
+            ServerPlayer player = ctx.get().getSender();
+            if (player == null) return;
+            MinecraftServer server = player.getServer();
+            if (server == null) return;
+
+            FactionStateManager manager = FactionStateManager.get(player.getServer());
+
+            try {
+                manager.createFaction(msg.factionName, null, player, player.getServer());
+                // If successful, re-open/refresh the GUI
+                PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);
+            } catch (Exception e) {
+                // Ideally send an error message packet back to display in GUI
+            }
+        });
+        ctx.get().setPacketHandled(true);
+    }
+}
