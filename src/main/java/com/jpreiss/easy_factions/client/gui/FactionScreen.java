@@ -41,10 +41,10 @@ public class FactionScreen extends Screen {
     // position and width of the window
     private int windowStartX;
     private int windowStartY;
-    private final int imageWidth = 360;
-    private final int imageHeight = 400;
+    private final int imageWidth = 320;
+    private final int imageHeight = 250;
 
-    private final int headerButtonWidth = 80;
+    private final int headerButtonWidth = 60;
     private final int buttonHeight = 20;
     private final int spacing = 5;
     private int topHeaderEndY;
