@@ -97,6 +97,25 @@ public class AllianceStateManager extends SavedData {
     }
 
     /**
+     * Revoke a faction invitation
+     *
+     * @param revokingUser       The user revoking the invite
+     * @param revokedFactionName The name of the faction whose invite is being revoked
+     * @throws RuntimeException If the player doesn't exist or the user is not the leader
+     */
+    public void revokeInvitation(ServerPlayer revokingUser, String revokedFactionName, MinecraftServer server) throws RuntimeException {
+        Faction revokingFaction = FactionStateManager.get(server).getOwnedFaction(revokingUser.getUUID());
+        if (!factionAllianceMap.containsKey(revokingFaction.getName()))
+            throw new RuntimeException("Your faction is not in an alliance. Create one first.");
+        Alliance alliance = alliances.get(factionAllianceMap.get(revokingFaction.getName()));
+        if (alliance.getMembers().contains(revokedFactionName))
+            throw new RuntimeException("The requested faction is already in your alliance.");
+
+        alliance.getInvited().remove(revokedFactionName);
+        this.setDirty();
+    }
+
+    /**
      * Accept an alliance invite
      *
      * @param player       The player accepting the invite
@@ -236,7 +255,7 @@ public class AllianceStateManager extends SavedData {
 
     public void setRelation(String otherAllianceName, ServerPlayer player, RelationshipStatus status) throws RuntimeException {
         MinecraftServer server = player.getServer();
-        if (server == null) throw new RuntimeException("The player is null.");
+        if (server == null) throw new RuntimeException("The server is null.");
 
         FactionStateManager factionStateManager = FactionStateManager.get(player.getServer());
         Faction playerFaction = factionStateManager.getFactionByPlayer(player.getUUID());

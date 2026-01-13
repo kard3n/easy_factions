@@ -35,6 +35,9 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketFactionCreateAction.class, PacketFactionCreateAction::encode, PacketFactionCreateAction::decode, PacketFactionCreateAction::handle);
         CHANNEL.registerMessage(id++, PacketFactionSetRelationAction.class, PacketFactionSetRelationAction::encode, PacketFactionSetRelationAction::decode, PacketFactionSetRelationAction::handle);
         CHANNEL.registerMessage(id++, PacketFactionLeaveAction.class, PacketFactionLeaveAction::encode, PacketFactionLeaveAction::decode, PacketFactionLeaveAction::handle);
+        CHANNEL.registerMessage(id++, PacketAllianceOperation.class, PacketAllianceOperation::encode, PacketAllianceOperation::decode, PacketAllianceOperation::handle);
+        CHANNEL.registerMessage(id++, PacketAllianceLeaveAction.class, PacketAllianceLeaveAction::encode, PacketAllianceLeaveAction::decode, PacketAllianceLeaveAction::handle);
+        CHANNEL.registerMessage(id++, PacketAllianceSetRelationAction.class, PacketAllianceSetRelationAction::encode, PacketAllianceSetRelationAction::decode, PacketAllianceSetRelationAction::handle);
     }
 
     /**

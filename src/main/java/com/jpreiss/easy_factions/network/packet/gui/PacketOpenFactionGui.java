@@ -4,6 +4,8 @@ import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
+import com.jpreiss.easy_factions.server.alliance.Alliance;
+import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.network.FriendlyByteBuf;
@@ -44,8 +46,9 @@ public class PacketOpenFactionGui {
             MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             if (server == null) return;
 
-            FactionStateManager manager = FactionStateManager.get(server);
-            Faction faction = manager.getFactionByPlayer(player.getUUID());
+            FactionStateManager factionManager = FactionStateManager.get(server);
+            AllianceStateManager allianceManager = AllianceStateManager.get(server);
+            Faction faction = factionManager.getFactionByPlayer(player.getUUID());
 
             PacketSyncFactionGuiData response;
             if (faction != null) { // Player is in a faction -> Return faction information
@@ -76,13 +79,26 @@ public class PacketOpenFactionGui {
                 }
 
                 Map<String, RelationshipStatus> outgoingRelationships = faction.getOutgoingRelations();
-                List<String> factionNames = manager.getAllFactionNames().stream().toList();
+                List<String> factionNames = factionManager.getAllFactionNames().stream().toList();
+
+                Alliance alliance = allianceManager.getAllianceByFaction(faction.getName());
+                List<String> allianceMembers = new ArrayList<>();
+                List<String> allianceInvites = new ArrayList<>();
+                Map<String, RelationshipStatus> outgoingAllianceRelations = new HashMap<>();
+                if (alliance != null) {
+                    allianceMembers.addAll(alliance.getMembers());
+                    allianceInvites.addAll(alliance.getInvited());
+                    outgoingAllianceRelations.putAll(alliance.getOutgoingRelations());
+                }
+                String allianceName = alliance != null ? alliance.getName() : null;
+
+                List<String> allianceNames = allianceManager.getAllianceNames().stream().toList();
 
 
-                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames);
+                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations);
             } else {
                 // Player is NOT in a faction -> Return pending invites
-                response = new PacketSyncFactionGuiData(manager.getInvitesForPlayer(player.getUUID()));
+                response = new PacketSyncFactionGuiData(factionManager.getInvitesForPlayer(player.getUUID()));
             }
 
             NetworkHandler.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), response);
