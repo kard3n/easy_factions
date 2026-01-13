@@ -1,21 +1,19 @@
 package com.jpreiss.easy_factions.client.gui;
 
 
-import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import com.mojang.logging.LogUtils;
+import com.jpreiss.easy_factions.network.NetworkHandler;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionLeaveAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.Logging;
-import org.slf4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 public class FactionScreen extends Screen {
@@ -24,7 +22,7 @@ public class FactionScreen extends Screen {
     }
 
     private enum FactionTab {
-        MEMBERS, INVITES, RELATIONS
+        MEMBERS, INVITES, RELATIONS, OPTIONS
     }
 
     // position and width of the window
@@ -36,6 +34,7 @@ public class FactionScreen extends Screen {
     private final int headerButtonWidth = 80;
     private final int buttonHeight = 20;
     private final int spacing = 5;
+    private int topHeaderEndY;
 
     private final int backgroundColor = 0xFF404040;
 
@@ -74,6 +73,7 @@ public class FactionScreen extends Screen {
 
         this.windowStartX = (this.width - this.imageWidth) / 2;
         this.windowStartY = (this.height - this.imageHeight) / 2;
+        this.topHeaderEndY = this.windowStartY + spacing + buttonHeight;
 
         int headerStartY = this.windowStartY + spacing;
 
@@ -123,8 +123,8 @@ public class FactionScreen extends Screen {
     private void initFactionTab() {
         // Buttons
 
-        int buttonStartX = (this.windowStartX + this.imageWidth / 2) - (this.headerButtonWidth * 3 - this.spacing * 2) / 2 - this.spacing; // Center buttons
-        int headerStartY = this.windowStartY + spacing * 2 + buttonHeight;
+        int buttonStartX = (this.windowStartX + this.imageWidth / 2) - (this.headerButtonWidth * 4 - this.spacing * 2) / 2 - this.spacing; // Center buttons
+        int headerStartY = this.topHeaderEndY + spacing;
 
         // Members button
         Button membersBtn = Button.builder(Component.literal("Members"), (btn) -> {
@@ -135,34 +135,37 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(membersBtn);
 
         // Invites button
-        Button invitesBtn = Button.builder(Component.literal("Invites"), (btn) -> {
-                    this.switchFactionTab(FactionTab.INVITES);
-                })
+        Button invitesBtn = Button.builder(Component.literal("Invites"), (btn) -> this.switchFactionTab(FactionTab.INVITES))
                 .bounds(buttonStartX + headerButtonWidth + this.spacing, headerStartY, headerButtonWidth, buttonHeight).build();
         invitesBtn.active = (currentFactionTab != FactionTab.INVITES);
         this.addRenderableWidget(invitesBtn);
 
         // Relations button
-        Button relationsBtn = Button.builder(Component.literal("Relations"), (btn) -> {
-                    this.switchFactionTab(FactionTab.RELATIONS);
-                })
+        Button relationsBtn = Button.builder(Component.literal("Relations"), (btn) -> this.switchFactionTab(FactionTab.RELATIONS))
                 .bounds(buttonStartX + (headerButtonWidth + this.spacing) * 2, headerStartY, headerButtonWidth, buttonHeight).build();
         relationsBtn.active = (currentFactionTab != FactionTab.RELATIONS);
         this.addRenderableWidget(relationsBtn);
 
+        // Options button
+        Button optionsBtn = Button.builder(Component.literal("Options"), (btn) -> this.switchFactionTab(FactionTab.OPTIONS))
+                .bounds(buttonStartX + (headerButtonWidth + this.spacing) * 3, headerStartY, headerButtonWidth, buttonHeight).build();
+        optionsBtn.active = (currentFactionTab != FactionTab.OPTIONS);
+        this.addRenderableWidget(optionsBtn);
+
         // Set where the tab object should start and end
         int topY = headerStartY + this.buttonHeight + spacing * 2;
         int bottomY = this.windowStartY + this.imageHeight - spacing;
-        switch (currentFactionTab){
+        switch (currentFactionTab) {
             case MEMBERS -> initFactionMembersTab(topY, bottomY);
             case INVITES -> initFactionInvitesTab(topY, bottomY);
             case RELATIONS -> initFactionRelationsTab(topY, bottomY);
+            case OPTIONS -> initFactionOptionsTab(topY, bottomY);
         }
 
 
     }
 
-    private void initFactionMembersTab(int topY, int bottomY){
+    private void initFactionMembersTab(int topY, int bottomY) {
         if (this.memberList == null) {
             this.memberList = new ScrollableFactionMemberList(this.minecraft, this.width, this.height, topY, bottomY, 30);
 
@@ -178,18 +181,18 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(this.memberList);
     }
 
-    private void initFactionInvitesTab(int topY, int bottomY){
+    private void initFactionInvitesTab(int topY, int bottomY) {
         if (this.inviteList == null) {
             this.inviteList = new ScrollableFactionInviteList(this.minecraft, this.width, this.height, topY, bottomY, 30);
 
             boolean localPlayerCanInvite = memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
 
-            for (UUID invitedUser: factionInvites) {
+            for (UUID invitedUser : factionInvites) {
                 this.inviteList.addInvite(playerNames.get(invitedUser), invitedUser, true, localPlayerCanInvite);
             }
 
-            for (UUID playerUUID: playerNames.keySet()){
-                if (!factionInvites.contains(playerUUID) && !memberRanks.containsKey(playerUUID)){
+            for (UUID playerUUID : playerNames.keySet()) {
+                if (!factionInvites.contains(playerUUID) && !memberRanks.containsKey(playerUUID)) {
                     this.inviteList.addInvite(playerNames.get(playerUUID), playerUUID, false, localPlayerCanInvite);
                 }
             }
@@ -202,7 +205,7 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(this.inviteList);
     }
 
-    private void initFactionRelationsTab(int topY, int bottomY){
+    private void initFactionRelationsTab(int topY, int bottomY) {
         if (this.relationsList == null) {
             this.relationsList = new ScrollableFactionRelationsList(this.minecraft, this.width, this.height, topY, bottomY, 30);
 
@@ -212,8 +215,8 @@ public class FactionScreen extends Screen {
                 this.relationsList.addFaction(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
             }
 
-            for(String factionName: factionNames){
-                if (!outgoingFactionRelations.containsKey(factionName) && !this.factionName.equals(factionName)){
+            for (String factionName : factionNames) {
+                if (!outgoingFactionRelations.containsKey(factionName) && !this.factionName.equals(factionName)) {
                     this.relationsList.addFaction(factionName, RelationshipStatus.NEUTRAL, playerIsOwnerOrOfficer);
                 }
             }
@@ -224,6 +227,13 @@ public class FactionScreen extends Screen {
         }
 
         this.addRenderableWidget(this.relationsList);
+    }
+
+    private void initFactionOptionsTab(int topY, int bottomY) {
+        int buttonStartX = this.windowStartX + this.spacing;
+        this.addRenderableWidget(Button.builder(Component.literal("Leave Faction"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketFactionLeaveAction());
+        }).bounds(buttonStartX, topY + spacing, headerButtonWidth, buttonHeight).build());
     }
 
 
@@ -245,7 +255,7 @@ public class FactionScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // 1. Draw the standard background (dark dirt texture)
         this.renderBackground(guiGraphics);
 
@@ -261,6 +271,7 @@ public class FactionScreen extends Screen {
         // 2. Draw the title
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFF);
 
+        /*
         switch (currentMainTab) {
             case FACTION -> {
             }
@@ -270,7 +281,7 @@ public class FactionScreen extends Screen {
             case SETTINGS -> {
                 guiGraphics.drawCenteredString(this.font, "Soon", this.width / 2, 60, 0x55FF55);
             }
-        }
+        }*/
 
         super.render(guiGraphics, mouseX, mouseY, partialTick);
     }

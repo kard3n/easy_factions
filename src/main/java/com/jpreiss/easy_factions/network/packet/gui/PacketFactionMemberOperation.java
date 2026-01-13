@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  * Client -> Server packet for member operations
  */
 public class PacketFactionMemberOperation {
-    public enum Action { LEAVE, KICK, INVITE, REVOKE_INVITE, PROMOTE, DEMOTE }
+    public enum Action { KICK, INVITE, REVOKE_INVITE, PROMOTE, DEMOTE }
 
     private final Action action;
     private final UUID playerUUID; // The player that is affected (NOT necessarily the one who executed this)
@@ -43,7 +43,6 @@ public class PacketFactionMemberOperation {
 
             try {
                 switch (msg.action) {
-                    case LEAVE -> manager.leaveFaction(player, player.getServer());
                     case KICK -> manager.kickFromFaction(player, msg.playerUUID, player.getServer());
                     case INVITE -> manager.invitePlayer(player, msg.playerUUID);
                     case PROMOTE -> manager.addOfficer(msg.playerUUID, player, player.getServer());
