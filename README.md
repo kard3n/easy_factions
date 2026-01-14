@@ -37,6 +37,10 @@ Colors:
 * 🟦 Blue: Neutral
 * 🟥 Red: Hostile
 
+### 🖥️ Intuitive GUI
+There's no need to use commands. Everything is just a click away.
+Default keybind: `G`.
+
 ### 👮 Rank Management
 Delegate authority to keep your faction running smoothly.
 * **Officers:** Promote trusted members to **Officer** status.
