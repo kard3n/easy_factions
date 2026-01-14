@@ -31,6 +31,8 @@ public class RelationshipCalculator {
 
         for (String otherFactionName : factionStateManager.getAllFactionNames()) {
             if (otherFactionName.equals(faction.getName())) continue;
+
+            // Other faction is an alliance member
             if (alliance != null && alliance.getMembers().contains(otherFactionName)) {
                 relationships.put(otherFactionName, RelationshipStatus.FRIENDLY);
                 continue;
@@ -40,7 +42,7 @@ public class RelationshipCalculator {
             otherFaction = factionStateManager.getFactionByName(otherFactionName);
             otherAlliance = allianceStateManager.getAllianceByFaction(otherFactionName);
 
-            // Check Alliance-to-Alliance Relations
+            // Both factions are in an alliance -> use alliance relations
             if (alliance != null && otherAlliance != null) {
                 RelationshipStatus incoming = alliance.getOutgoingRelations().getOrDefault(otherAlliance.getName(), RelationshipStatus.NEUTRAL);
                 RelationshipStatus outgoing = alliance.getIncomingRelations().getOrDefault(otherAlliance.getName(), RelationshipStatus.NEUTRAL);
@@ -50,13 +52,17 @@ public class RelationshipCalculator {
 
             // Check Faction-to-Faction Relations
             if (alliance != null) {
+                // We are in an alliance. Get lowest out of all alliance members
                 for (String member : alliance.getMembers()) {
                     Faction memberFaction = factionStateManager.getFactionByName(member);
 
-                    RelationshipStatus incoming = memberFaction.getOutgoingRelations().getOrDefault(otherFactionName, RelationshipStatus.NEUTRAL);
-                    RelationshipStatus outgoing = memberFaction.getIncomingRelations().getOrDefault(otherFactionName, RelationshipStatus.NEUTRAL);
+                    if (memberFaction.getOutgoingRelations().containsKey(otherFactionName)) {
+                        maxRelation = getHigherRelation(maxRelation, memberFaction.getOutgoingRelations().get(otherFactionName));
+                    }
 
-                    maxRelation = getHigherRelation(maxRelation, getHigherRelation(incoming, outgoing));
+                    if (memberFaction.getIncomingRelations().containsKey(otherFactionName)) {
+                        maxRelation = getHigherRelation(maxRelation, memberFaction.getIncomingRelations().get(otherFactionName));
+                    }
 
                     if (maxRelation == RelationshipStatus.HOSTILE) break;
                 }
