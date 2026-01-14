@@ -27,6 +27,7 @@ public class PacketSyncFactionGuiData {
     private final List<String> allianceInvites;
     private final List<String> allianceNames;
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
+    private final Map<String, RelationshipStatus> incomingAllianceRelations;
 
     // Constructor for when player IS in a faction
     public PacketSyncFactionGuiData(
@@ -39,7 +40,8 @@ public class PacketSyncFactionGuiData {
             List<String> allianceMembers,
             List<String> allianceInvites,
             List<String> allianceNames,
-            Map<String, RelationshipStatus> outgoingAllianceRelations) {
+            Map<String, RelationshipStatus> outgoingAllianceRelations,
+            Map<String, RelationshipStatus> incomingAllianceRelations) {
         this.inFaction = true;
         this.factionName = factionName;
         this.memberRanks = memberRanks;
@@ -53,6 +55,7 @@ public class PacketSyncFactionGuiData {
         this.allianceInvites = allianceInvites;
         this.allianceNames = allianceNames;
         this.outgoingAllianceRelations = outgoingAllianceRelations;
+        this.incomingAllianceRelations = incomingAllianceRelations;
     }
 
     // Constructor for when player is NOT in a faction
@@ -70,6 +73,7 @@ public class PacketSyncFactionGuiData {
         this.allianceInvites = new ArrayList<>();
         this.allianceNames = new ArrayList<>();
         this.outgoingAllianceRelations = new HashMap<>();
+        this.incomingAllianceRelations = new HashMap<>();
     }
 
     // Internal constructor for decoding
@@ -86,7 +90,8 @@ public class PacketSyncFactionGuiData {
             List<String> allianceMembers,
             List<String> allianceInvites,
             List<String> allianceNames,
-            Map<String, RelationshipStatus> outgoingAllianceRelations
+            Map<String, RelationshipStatus> outgoingAllianceRelations,
+            Map<String, RelationshipStatus> incomingAllianceRelations
     ) {
         this.inFaction = inFaction;
         this.factionName = factionName;
@@ -101,6 +106,7 @@ public class PacketSyncFactionGuiData {
         this.allianceInvites = allianceInvites;
         this.allianceNames = allianceNames;
         this.outgoingAllianceRelations = outgoingAllianceRelations;
+        this.incomingAllianceRelations = incomingAllianceRelations;
     }
 
     public static void encode(PacketSyncFactionGuiData msg, FriendlyByteBuf buf) {
@@ -117,6 +123,7 @@ public class PacketSyncFactionGuiData {
         buf.writeCollection(msg.allianceInvites, FriendlyByteBuf::writeUtf);
         buf.writeCollection(msg.allianceNames, FriendlyByteBuf::writeUtf);
         buf.writeMap(msg.outgoingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
+        buf.writeMap(msg.incomingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
     }
 
     public static PacketSyncFactionGuiData decode(FriendlyByteBuf buf) {
@@ -134,6 +141,7 @@ public class PacketSyncFactionGuiData {
         List<String> allianceInvites = buf.readList(FriendlyByteBuf::readUtf);
         List<String> allianceNames = buf.readList(FriendlyByteBuf::readUtf);
         Map<String, RelationshipStatus> outgoingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
+        Map<String, RelationshipStatus> incomingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
 
         return new PacketSyncFactionGuiData(
                 inFaction,
@@ -148,14 +156,15 @@ public class PacketSyncFactionGuiData {
                 allianceMembers,
                 allianceInvites,
                 allianceNames,
-                outgoingAllianceRelations
+                outgoingAllianceRelations,
+                incomingAllianceRelations
         );
     }
 
     public static void handle(PacketSyncFactionGuiData msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (msg.inFaction) {
-                Minecraft.getInstance().setScreen(new FactionScreen(msg.factionName, msg.memberRanks, msg.playerNames, msg.factionInvites, msg.outgoingRelationships, msg.factionNames, msg.allianceName, msg.allianceMembers, msg.allianceInvites, msg.allianceNames, msg.outgoingAllianceRelations));
+                Minecraft.getInstance().setScreen(new FactionScreen(msg.factionName, msg.memberRanks, msg.playerNames, msg.factionInvites, msg.outgoingRelationships, msg.factionNames, msg.allianceName, msg.allianceMembers, msg.allianceInvites, msg.allianceNames, msg.outgoingAllianceRelations, msg.incomingAllianceRelations));
             } else {
                 Minecraft.getInstance().setScreen(new NoFactionScreen(msg.playerInvites));
             }

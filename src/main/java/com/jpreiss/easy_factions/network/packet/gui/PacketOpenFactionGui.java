@@ -85,17 +85,19 @@ public class PacketOpenFactionGui {
                 List<String> allianceMembers = new ArrayList<>();
                 List<String> allianceInvites = new ArrayList<>();
                 Map<String, RelationshipStatus> outgoingAllianceRelations = new HashMap<>();
+                Map<String, RelationshipStatus> incomingAllianceRelations = new HashMap<>();
                 if (alliance != null) {
                     allianceMembers.addAll(alliance.getMembers());
                     allianceInvites.addAll(alliance.getInvited());
                     outgoingAllianceRelations.putAll(alliance.getOutgoingRelations());
+                    incomingAllianceRelations.putAll(alliance.getIncomingRelations());
                 }
                 String allianceName = alliance != null ? alliance.getName() : null;
 
                 List<String> allianceNames = allianceManager.getAllianceNames().stream().toList();
 
 
-                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations);
+                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations, incomingAllianceRelations);
             } else {
                 // Player is NOT in a faction -> Return pending invites
                 response = new PacketSyncFactionGuiData(factionManager.getInvitesForPlayer(player.getUUID()));

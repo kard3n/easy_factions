@@ -68,8 +68,9 @@ public class FactionScreen extends Screen {
     private final List<String> allianceInvites;
     private final List<String> allianceNames;
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
+    private final Map<String, RelationshipStatus> incomingAllianceRelations;
 
-    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames, String allianceName, List<String> allianceMembers, List<String> allianceInvites, List<String> allianceNames, Map<String, RelationshipStatus> outgoingAllianceRelations) {
+    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames, String allianceName, List<String> allianceMembers, List<String> allianceInvites, List<String> allianceNames, Map<String, RelationshipStatus> outgoingAllianceRelations, Map<String, RelationshipStatus> incomingAllianceRelations) {
         super(Component.literal("Easy Factions"));
         this.factionName = factionName;
         this.memberRanks = memberRanks;
@@ -84,6 +85,7 @@ public class FactionScreen extends Screen {
         this.allianceInvites = allianceInvites;
         this.allianceNames = allianceNames;
         this.outgoingAllianceRelations = outgoingAllianceRelations;
+        this.incomingAllianceRelations = incomingAllianceRelations;
     }
 
     @Override
@@ -326,13 +328,19 @@ public class FactionScreen extends Screen {
             this.allianceRelationsList.setLeftPos(this.windowStartX + 10);
             boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
+            RelationshipStatus incomingRelationship;
             for (Map.Entry<String, RelationshipStatus> entry : outgoingAllianceRelations.entrySet()) {
-                this.allianceRelationsList.addAlliance(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
+                incomingRelationship = this.incomingAllianceRelations.get(entry.getKey());
+                if (incomingRelationship == null) incomingRelationship = RelationshipStatus.NEUTRAL;
+                this.allianceRelationsList.addAlliance(entry.getKey(), entry.getValue(), incomingRelationship, playerIsOwnerOrOfficer);
             }
 
             for (String currentAllianceName : allianceNames) {
                 if (!outgoingAllianceRelations.containsKey(currentAllianceName) && !this.allianceName.equals(currentAllianceName)) {
-                    this.allianceRelationsList.addAlliance(currentAllianceName, RelationshipStatus.NEUTRAL, playerIsOwnerOrOfficer);
+                    incomingRelationship = this.incomingAllianceRelations.get(currentAllianceName);
+                    if (incomingRelationship == null) incomingRelationship = RelationshipStatus.NEUTRAL;
+
+                    this.allianceRelationsList.addAlliance(currentAllianceName, RelationshipStatus.NEUTRAL, incomingRelationship, playerIsOwnerOrOfficer);
                 }
             }
         } else {

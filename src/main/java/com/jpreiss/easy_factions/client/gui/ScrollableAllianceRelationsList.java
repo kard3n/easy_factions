@@ -29,8 +29,8 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
         this.setRenderTopAndBottom(false);
     }
 
-    public void addAlliance(String allianceName, RelationshipStatus outgoingStatus, boolean playerCanEdit) {
-        this.addEntry(new RelationEntry(allianceName, outgoingStatus, playerCanEdit));
+    public void addAlliance(String allianceName, RelationshipStatus outgoingStatus, RelationshipStatus incomingStatus, boolean playerCanEdit) {
+        this.addEntry(new RelationEntry(allianceName, outgoingStatus, incomingStatus, playerCanEdit));
     }
 
     @Override
@@ -46,6 +46,8 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
     // Entry class
     public static class RelationEntry extends Entry<RelationEntry> {
         private final String allianceName;
+        private final RelationshipStatus outgoingAllianceStatus;
+        private final RelationshipStatus incomingAllianceStatus;
         private final Button buttonFriendly;
         private final Button buttonNeutral;
         private final Button buttonHostile;
@@ -55,8 +57,10 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
          * @param outgoingAllianceStatus Status this alliance has set the other to
          * @param playerCanEdit If the player seeing this should be able to change the relationship
          */
-        public RelationEntry(String allianceName, RelationshipStatus outgoingAllianceStatus, boolean playerCanEdit) {
+        public RelationEntry(String allianceName, RelationshipStatus outgoingAllianceStatus, RelationshipStatus incomingAllianceStatus, boolean playerCanEdit) {
             this.allianceName = allianceName;
+            this.outgoingAllianceStatus = outgoingAllianceStatus;
+            this.incomingAllianceStatus = incomingAllianceStatus;
 
             this.buttonFriendly = Button.builder(Component.literal("Friendly"), (btn) -> {
                 NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, FRIENDLY));
@@ -83,14 +87,21 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
             guiGraphics.drawString(mc.font, this.allianceName, left + 2, top + 8, 0xFFFFFF);
 
             // relationship
-            RelationshipStatus status = ClientRelationshipData.getRelationship(this.allianceName);
+            RelationshipStatus shownStatus = this.outgoingAllianceStatus;
+            if (this.incomingAllianceStatus == RelationshipStatus.NEUTRAL && this.outgoingAllianceStatus != RelationshipStatus.HOSTILE) {
+                shownStatus = RelationshipStatus.NEUTRAL;
+            }
+            else if (incomingAllianceStatus == RelationshipStatus.HOSTILE) {
+                shownStatus = RelationshipStatus.HOSTILE;
+            }
+
             Color statusColor;
-            switch (status) {
+            switch (shownStatus) {
                 case FRIENDLY -> statusColor = Color.GREEN;
                 case HOSTILE -> statusColor = Color.RED;
                 default -> statusColor = Color.BLUE;
             }
-            guiGraphics.drawString(mc.font, status.toString(), left + 80, top + 8, statusColor.getRGB());
+            guiGraphics.drawString(mc.font, shownStatus.toString(), left + 80, top + 8, statusColor.getRGB());
 
             this.buttonFriendly.setX(left + 130);
             this.buttonFriendly.setY(top + 2);
