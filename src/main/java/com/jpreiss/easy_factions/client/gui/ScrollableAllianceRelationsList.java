@@ -35,13 +35,12 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
 
     @Override
     public int getRowWidth() {
-        return 320;
+        return 300;
     }
 
     @Override
     protected int getScrollbarPosition() {
-        // Position the scrollbar to the right of the row
-        return this.width / 2 + this.getRowWidth() / 2 + 4;
+        return this.getLeft() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -61,17 +60,17 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
 
             this.buttonFriendly = Button.builder(Component.literal("Friendly"), (btn) -> {
                 NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, FRIENDLY));
-            }).bounds(0, 0, 60, 20).build();
+            }).bounds(0, 0, 55, 20).build();
             this.buttonFriendly.active = (outgoingAllianceStatus != FRIENDLY) && playerCanEdit;
 
             this.buttonNeutral = Button.builder(Component.literal("Neutral"), (btn) -> {
                 NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.NEUTRAL));
-            }).bounds(0, 0, 60, 20).build();
+            }).bounds(0, 0, 55, 20).build();
             this.buttonNeutral.active = (outgoingAllianceStatus != RelationshipStatus.NEUTRAL) && playerCanEdit;
 
             this.buttonHostile = Button.builder(Component.literal("Hostile"), (btn) -> {
                 NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.HOSTILE));
-            }).bounds(0, 0, 60, 20).build();
+            }).bounds(0, 0, 55, 20).build();
             this.buttonHostile.active = (outgoingAllianceStatus != RelationshipStatus.HOSTILE) && playerCanEdit;
 
         }
@@ -81,7 +80,7 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
             Minecraft mc = Minecraft.getInstance();
 
             // name
-            guiGraphics.drawString(mc.font, this.allianceName, left + 5, top + 6, 0xFFFFFF);
+            guiGraphics.drawString(mc.font, this.allianceName, left + 2, top + 8, 0xFFFFFF);
 
             // relationship
             RelationshipStatus status = ClientRelationshipData.getRelationship(this.allianceName);
@@ -91,15 +90,15 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
                 case HOSTILE -> statusColor = Color.RED;
                 default -> statusColor = Color.BLUE;
             }
-            guiGraphics.drawString(mc.font, status.toString(), left + 80, top + 6, statusColor.getRGB());
+            guiGraphics.drawString(mc.font, status.toString(), left + 80, top + 8, statusColor.getRGB());
 
             this.buttonFriendly.setX(left + 130);
             this.buttonFriendly.setY(top + 2);
 
-            this.buttonNeutral.setX(left + 195);
+            this.buttonNeutral.setX(left + 190);
             this.buttonNeutral.setY(top + 2);
 
-            this.buttonHostile.setX(left + 260);
+            this.buttonHostile.setX(left + 250);
             this.buttonHostile.setY(top + 2);
 
 

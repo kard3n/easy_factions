@@ -32,13 +32,12 @@ public class ScrollableAllianceMemberList extends ObjectSelectionList<Scrollable
 
     @Override
     public int getRowWidth() {
-        return 320;
+        return 300;
     }
 
     @Override
     protected int getScrollbarPosition() {
-        // Position the scrollbar to the right of the row
-        return this.width / 2 + this.getRowWidth() / 2 + 4;
+        return this.getLeft() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -60,11 +59,11 @@ public class ScrollableAllianceMemberList extends ObjectSelectionList<Scrollable
             Minecraft mc = Minecraft.getInstance();
 
             // name
-            guiGraphics.drawString(mc.font, this.shownFactionName, left + 5, top + 6, 0xFFFFFF);
+            guiGraphics.drawString(mc.font, this.shownFactionName, left + 4, top + 8, 0xFFFFFF);
 
             // If it is the current one
             if (this.isClientsFactions) {
-                guiGraphics.drawString(mc.font, "(You)", left + 105, top + 6, Color.GREEN.getRGB());
+                guiGraphics.drawString(mc.font, "(You)", left + 105, top + 8, Color.GREEN.getRGB());
             }
 
         }

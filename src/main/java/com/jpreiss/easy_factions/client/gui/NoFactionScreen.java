@@ -2,29 +2,31 @@ package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionCreateAction;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionJoinAction;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class NoFactionScreen extends Screen {
-    private static final ResourceLocation TEXTURE = new ResourceLocation("textures/gui/demo_background.png");
 
     private final List<String> invites;
     private EditBox nameField;
+    private ScrollableInviteSelectionList inviteList; // The new list
     private boolean isCreating = false;
 
     private int leftPos;
     private int topPos;
-    private final int imageWidth = 248;
-    private final int imageHeight = 166;
+    private final int imageWidth = 260;
+    private final int imageHeight = 200; // Made slightly taller to fit list better
+
+    // Styling Colors
+    private final int COL_BG = 0xF0101010;
+    private final int COL_BORDER = 0xFF505050;
+    private final int COL_LIST_BG = 0xFF000000;
 
     public NoFactionScreen(List<String> invites) {
         super(Component.literal("Faction Menu"));
@@ -36,7 +38,6 @@ public class NoFactionScreen extends Screen {
         this.leftPos = (this.width - this.imageWidth) / 2;
         this.topPos = (this.height - this.imageHeight) / 2;
 
-        // Window Center (Relative to screen)
         int centerX = this.leftPos + (this.imageWidth / 2);
         int centerY = this.topPos + (this.imageHeight / 2);
 
@@ -60,44 +61,55 @@ public class NoFactionScreen extends Screen {
 
         } else {
             // Landing View
+
             this.addRenderableWidget(new Button.Builder(Component.literal("Create New Faction"), button -> {
                 this.isCreating = true;
                 this.rebuildWidgets();
-            }).bounds(centerX - 80, this.topPos + 30, 160, 20).build());
+            }).bounds(centerX - 80, this.topPos + 35, 160, 20).build());
 
-            // Invites List
-            int y = this.topPos + 80;
+            // Invite list
+            // Area: Starts below the "Pending Invites" text, ends before bottom of window
+            int listTop = this.topPos + 80;
+            int listBottom = this.topPos + this.imageHeight - 10;
+
+            this.inviteList = new ScrollableInviteSelectionList(this.minecraft, this.imageWidth - 20, this.height, listTop, listBottom, 30);
+            this.inviteList.setLeftPos(this.leftPos + 10); // Center horizontally
+
             for (String invite : invites) {
-                if (y > this.topPos + this.imageHeight - 20) break; // Boundary check
-
-                this.addRenderableWidget(new Button.Builder(Component.literal("Join " + invite), button -> {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionJoinAction(invite));
-                    this.onClose();
-                }).bounds(centerX - 80, y, 160, 20).build());
-                y += 25;
+                this.inviteList.addInvite(invite);
             }
+
+            this.addRenderableWidget(this.inviteList);
         }
     }
 
     @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics); // Darken world
+        this.renderBackground(guiGraphics);
 
-        // Draw Window
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight);
+        // Window Frame and Background
+        guiGraphics.fill(leftPos - 1, topPos - 1, leftPos + imageWidth + 1, topPos + imageHeight + 1, COL_BORDER);
+        guiGraphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, COL_BG);
 
-        // Draw Title
-        guiGraphics.drawCenteredString(this.font, this.title, this.leftPos + (this.imageWidth / 2), this.topPos + 10, 0x404040);
+        // Title
+        guiGraphics.drawCenteredString(this.font, this.title, this.leftPos + (this.imageWidth / 2), this.topPos + 10, 0xFFFFFF);
+
+        // Separator Line
+        guiGraphics.hLine(leftPos + 10, leftPos + imageWidth - 10, topPos + 25, 0xFF555555);
 
         if (isCreating) {
-            guiGraphics.drawString(this.font, "Enter Faction Name:", this.leftPos + (this.imageWidth / 2) - 80, this.topPos + (this.imageHeight / 2) - 35, 0x404040, false);
+            guiGraphics.drawString(this.font, "Enter Faction Name:", this.leftPos + (this.imageWidth / 2) - 80, this.topPos + (this.imageHeight / 2) - 35, 0xAAAAAA, false);
         } else {
-            // Draw "Invites" Header only if there are invites or to indicate the section
             if (!invites.isEmpty()) {
-                guiGraphics.drawCenteredString(this.font, "Pending Invites:", this.leftPos + (this.imageWidth / 2), this.topPos + 65, 0x404040);
+                guiGraphics.drawCenteredString(this.font, "Pending Invites:", this.leftPos + (this.imageWidth / 2), this.topPos + 65, 0xAAAAAA);
+
+                // Draw background box for the list
+                if (this.inviteList != null) {
+                    guiGraphics.fill(leftPos + 10, inviteList.getTop(), leftPos + imageWidth - 10, inviteList.getBottom(), COL_LIST_BG);
+                    guiGraphics.renderOutline(leftPos + 10, inviteList.getTop(), imageWidth - 20, inviteList.getBottom() - inviteList.getTop(), 0xFF444444);
+                }
             } else {
-                guiGraphics.drawCenteredString(this.font, "No Pending Invites", this.leftPos + (this.imageWidth / 2), this.topPos + 65, 0x808080);
+                guiGraphics.drawCenteredString(this.font, "No Pending Invites", this.leftPos + (this.imageWidth / 2), this.topPos + 80, 0x555555);
             }
         }
 

@@ -32,13 +32,12 @@ public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableF
 
     @Override
     public int getRowWidth() {
-        return 320;
+        return 300;
     }
 
     @Override
     protected int getScrollbarPosition() {
-        // Position the scrollbar to the right of the row
-        return this.width / 2 + this.getRowWidth() / 2 + 4;
+        return this.getLeft() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -98,7 +97,7 @@ public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableF
             Minecraft mc = Minecraft.getInstance();
 
             // name
-            guiGraphics.drawString(mc.font, this.shownPlayerName, left + 5, top + 6, 0xFFFFFF);
+            guiGraphics.drawString(mc.font, this.shownPlayerName, left + 4, top + 8, 0xFFFFFF);
 
             // rank
             Color statusColor;
@@ -108,7 +107,7 @@ public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableF
                 case MEMBER -> statusColor = Color.WHITE;
                 default -> statusColor = Color.GRAY;
             }
-            guiGraphics.drawString(mc.font, this.shownPlayerRank.toString(), left + 80, top + 6, statusColor.getRGB());
+            guiGraphics.drawString(mc.font, this.shownPlayerRank.toString(), left + 80, top + 8, statusColor.getRGB());
 
             this.buttonKick.setX(left + 120);
             this.buttonKick.setY(top + 2);
