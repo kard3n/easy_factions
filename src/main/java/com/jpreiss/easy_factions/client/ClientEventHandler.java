@@ -47,10 +47,10 @@ public class ClientEventHandler {
         String factionName = ClientFactionData.getFaction(player.getUUID());
         if (factionName == null) return;
 
-        String factionAbbreviation = ClientConfig.showFactionAbbreviation ? ClientFactionData.getAbbreviation(factionName) : null;
+        String factionAbbreviation = ClientConfig.getShowFactionAbbreviation() ? ClientFactionData.getAbbreviation(factionName) : null;
 
         String allianceName = ClientAllianceData.getAlliance(factionName);
-        String allianceAbbreviation = ClientConfig.showAllianceAbbreviation ? ClientAllianceData.getAbbreviation(allianceName) : null;
+        String allianceAbbreviation = ClientConfig.getShowAllianceAbbreviation() ? ClientAllianceData.getAbbreviation(allianceName) : null;
 
         Player viewer = Minecraft.getInstance().player;
         String viewerFaction = null;

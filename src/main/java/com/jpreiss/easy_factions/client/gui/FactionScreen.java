@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.client.gui;
 
+import com.jpreiss.easy_factions.client.ClientConfig;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
@@ -357,9 +358,42 @@ public class FactionScreen extends Screen {
     }
 
     private void initSettingsTab() {
-        int centerY = this.windowStartY + headerHeight + 20;
-        this.addRenderableWidget(Button.builder(Component.literal("Soon!"), (btn) -> {
-        }).bounds(this.windowStartX + 20, centerY, 100, 20).build());
+        int startX = this.windowStartX + 20;
+        int startY = this.windowStartY + headerHeight + 20;
+        int gap = 25;
+
+        // Faction Abbreviation
+
+        Button factionTrue = Button.builder(Component.literal("True"), (btn) -> {
+            ClientConfig.setShowFactionAbbreviation(true);
+            this.rebuildWidgets();
+        }).bounds(startX + 170, startY, 50, 20).build();
+        factionTrue.active = !ClientConfig.showFactionAbbreviation;
+        this.addRenderableWidget(factionTrue);
+
+        Button factionFalse = Button.builder(Component.literal("False"), (btn) -> {
+            ClientConfig.setShowFactionAbbreviation(false);
+            this.rebuildWidgets();
+        }).bounds(startX + 225, startY, 50, 20).build();
+        factionFalse.active = ClientConfig.showFactionAbbreviation;
+        this.addRenderableWidget(factionFalse);
+
+        // Alliance Abbreviation
+        int y2 = startY + gap;
+
+        Button allianceTrue = Button.builder(Component.literal("True"), (btn) -> {
+            ClientConfig.setShowAllianceAbbreviation(true);
+            this.rebuildWidgets();
+        }).bounds(startX + 170, y2, 50, 20).build();
+        allianceTrue.active = !ClientConfig.showAllianceAbbreviation;
+        this.addRenderableWidget(allianceTrue);
+
+        Button allianceFalse = Button.builder(Component.literal("False"), (btn) -> {
+            ClientConfig.setShowAllianceAbbreviation(false);
+            this.rebuildWidgets();
+        }).bounds(startX + 225, y2, 50, 20).build();
+        allianceFalse.active = ClientConfig.showAllianceAbbreviation;
+        this.addRenderableWidget(allianceFalse);
     }
 
     @Override
@@ -390,6 +424,14 @@ public class FactionScreen extends Screen {
             guiGraphics.drawString(this.font, "Faction: " + this.factionName, windowStartX + 10, windowStartY + 37, 0xAAAAAA);
         } else if (currentMainTab == MainTab.ALLIANCE && allianceName != null) {
             guiGraphics.drawString(this.font, "Alliance: " + this.allianceName, windowStartX + 10, windowStartY + 37, 0xAAAAAA);
+        }
+
+        if (currentMainTab == MainTab.SETTINGS) {
+            int startX = this.windowStartX + 20;
+            int startY = this.windowStartY + headerHeight + 20;
+            int gap = 25;
+            guiGraphics.drawString(this.font, "Show Faction Abbreviation", startX, startY + 8, 0xFFFFFF, false);
+            guiGraphics.drawString(this.font, "Show Alliance Abbreviation", startX, startY + gap + 8, 0xFFFFFF, false);
         }
 
         // List Background (Inset look)

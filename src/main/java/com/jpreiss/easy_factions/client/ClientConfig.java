@@ -35,4 +35,22 @@ public class ClientConfig
         showFactionAbbreviation = SHOW_FACTION_ABBREVIATION.get();
         showAllianceAbbreviation = SHOW_ALLIANCE_ABBREVIATION.get();
     }
+
+    public static void setShowFactionAbbreviation(boolean value) {
+        SHOW_FACTION_ABBREVIATION.set(value);
+        showFactionAbbreviation = value;
+    }
+
+    public static void setShowAllianceAbbreviation(boolean value) {
+        SHOW_ALLIANCE_ABBREVIATION.set(value);
+        showAllianceAbbreviation = value;
+    }
+
+    public static boolean getShowFactionAbbreviation() {
+        return SHOW_FACTION_ABBREVIATION.get();
+    }
+
+    public static boolean getShowAllianceAbbreviation() {
+        return SHOW_ALLIANCE_ABBREVIATION.get();
+    }
 }
