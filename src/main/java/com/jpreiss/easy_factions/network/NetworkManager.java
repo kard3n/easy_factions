@@ -17,6 +17,11 @@ public class NetworkManager {
         if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
         PacketSyncFactionAlliance onlinePlayerData = getOnlinePlayerData(server);
         NetworkHandler.sendToPlayer(onlinePlayerData, player);
+
+        Faction playerFaction = FactionStateManager.get(server).getFactionByPlayer(player.getUUID());
+        if (playerFaction != null) {
+            NetworkHandler.sendToPlayer(new PacketSetFactionRelations(RelationshipCalculator.calculateRelationships(playerFaction, server)), player);
+        }
     }
 
     public static void broadcastPlayerInfo(ServerPlayer newPlayer, MinecraftServer server) {
