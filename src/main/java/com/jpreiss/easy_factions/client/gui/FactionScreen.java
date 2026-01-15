@@ -6,6 +6,7 @@ import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceLeaveAction;
 import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceOperation;
+import com.jpreiss.easy_factions.network.packet.gui.PacketFactionFriendlyFireToggle;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionLeaveAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -42,6 +43,10 @@ public class FactionScreen extends Screen {
     private final int buttonHeight = 20;
     private final int spacing = 5;
 
+    // Helpers
+    private int contentStartX;
+    private int contentStartY;
+
     // Colors (ARGB)
     private static final int COL_WINDOW_BG = 0xF0404040; // Dark semi-transparent
     private static final int COL_HEADER_BG = 0xFF202020; // Slightly lighter header
@@ -70,8 +75,9 @@ public class FactionScreen extends Screen {
     private final List<String> allianceNames;
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
     private final Map<String, RelationshipStatus> incomingAllianceRelations;
+    private final boolean friendlyFire;
 
-    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames, String allianceName, List<String> allianceMembers, List<String> allianceInvites, List<String> allianceNames, Map<String, RelationshipStatus> outgoingAllianceRelations, Map<String, RelationshipStatus> incomingAllianceRelations) {
+    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames, String allianceName, List<String> allianceMembers, List<String> allianceInvites, List<String> allianceNames, Map<String, RelationshipStatus> outgoingAllianceRelations, Map<String, RelationshipStatus> incomingAllianceRelations, boolean friendlyFire) {
         super(Component.literal("Easy Factions"));
         this.factionName = factionName;
         this.memberRanks = memberRanks;
@@ -87,6 +93,7 @@ public class FactionScreen extends Screen {
         this.allianceNames = allianceNames;
         this.outgoingAllianceRelations = outgoingAllianceRelations;
         this.incomingAllianceRelations = incomingAllianceRelations;
+        this.friendlyFire = friendlyFire;
     }
 
     @Override
@@ -94,6 +101,8 @@ public class FactionScreen extends Screen {
         super.init();
         this.windowStartX = (this.width - this.imageWidth) / 2;
         this.windowStartY = (this.height - this.imageHeight) / 2;
+        this.contentStartX = this.windowStartX + spacing;
+        this.contentStartY = this.windowStartY + headerHeight + spacing;
 
         int mainTabY = this.windowStartY + (headerHeight / 2) - (buttonHeight / 2);
         // Align Main Tabs to the Right of the header
@@ -243,10 +252,24 @@ public class FactionScreen extends Screen {
     }
 
     private void initFactionOptionsTab(int topY, int bottomY) {
+
+        Button friendlyFireOn = Button.builder(Component.literal("True"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(true));
+        }).bounds(contentStartX + 170, getContentTopY(), 50, 20).build();
+        friendlyFireOn.active = !this.friendlyFire;
+        this.addRenderableWidget(friendlyFireOn);
+
+        Button friendlyFireOff = Button.builder(Component.literal("False"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(true));
+        }).bounds(contentStartX + 225, getContentTopY(), 50, 20).build();
+        friendlyFireOff.active = this.friendlyFire;
+        this.addRenderableWidget(friendlyFireOff);
+
+
         // Center the button in the content area
         this.addRenderableWidget(Button.builder(Component.literal("Leave Faction"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketFactionLeaveAction());
-        }).bounds(this.windowStartX + (this.imageWidth / 2) - 50, topY + 20, 100, 20).build());
+        }).bounds(this.windowStartX + this.imageWidth - this.spacing - 100, this.getContentBottomY() - buttonHeight, 100, 20).build());
     }
 
     private void initAllianceTab() {
@@ -358,40 +381,37 @@ public class FactionScreen extends Screen {
     }
 
     private void initSettingsTab() {
-        int startX = this.windowStartX + 20;
-        int startY = this.windowStartY + headerHeight + 20;
         int gap = 25;
 
         // Faction Abbreviation
-
         Button factionTrue = Button.builder(Component.literal("True"), (btn) -> {
             ClientConfig.setShowFactionAbbreviation(true);
             this.rebuildWidgets();
-        }).bounds(startX + 170, startY, 50, 20).build();
+        }).bounds(contentStartX + 170, contentStartY, 50, 20).build();
         factionTrue.active = !ClientConfig.showFactionAbbreviation;
         this.addRenderableWidget(factionTrue);
 
         Button factionFalse = Button.builder(Component.literal("False"), (btn) -> {
             ClientConfig.setShowFactionAbbreviation(false);
             this.rebuildWidgets();
-        }).bounds(startX + 225, startY, 50, 20).build();
+        }).bounds(contentStartX + 225, contentStartY, 50, 20).build();
         factionFalse.active = ClientConfig.showFactionAbbreviation;
         this.addRenderableWidget(factionFalse);
 
         // Alliance Abbreviation
-        int y2 = startY + gap;
+        int y2 = contentStartY + gap;
 
         Button allianceTrue = Button.builder(Component.literal("True"), (btn) -> {
             ClientConfig.setShowAllianceAbbreviation(true);
             this.rebuildWidgets();
-        }).bounds(startX + 170, y2, 50, 20).build();
+        }).bounds(contentStartX + 170, y2, 50, 20).build();
         allianceTrue.active = !ClientConfig.showAllianceAbbreviation;
         this.addRenderableWidget(allianceTrue);
 
         Button allianceFalse = Button.builder(Component.literal("False"), (btn) -> {
             ClientConfig.setShowAllianceAbbreviation(false);
             this.rebuildWidgets();
-        }).bounds(startX + 225, y2, 50, 20).build();
+        }).bounds(contentStartX + 225, y2, 50, 20).build();
         allianceFalse.active = ClientConfig.showAllianceAbbreviation;
         this.addRenderableWidget(allianceFalse);
     }
@@ -427,11 +447,12 @@ public class FactionScreen extends Screen {
         }
 
         if (currentMainTab == MainTab.SETTINGS) {
-            int startX = this.windowStartX + 20;
-            int startY = this.windowStartY + headerHeight + 20;
             int gap = 25;
-            guiGraphics.drawString(this.font, "Show Faction Abbreviation", startX, startY + 8, 0xFFFFFF, false);
-            guiGraphics.drawString(this.font, "Show Alliance Abbreviation", startX, startY + gap + 8, 0xFFFFFF, false);
+            guiGraphics.drawString(this.font, "Show Faction Abbreviation", contentStartX, contentStartY + 8, 0xFFFFFF, false);
+            guiGraphics.drawString(this.font, "Show Alliance Abbreviation", contentStartX, contentStartY + gap + 8, 0xFFFFFF, false);
+        }
+        else if( currentMainTab == MainTab.FACTION && currentFactionTab == FactionTab.OPTIONS){
+            guiGraphics.drawString(this.font, "Enable Friendly Fire", contentStartX + spacing, this.getContentTopY() + 8, 0xFFFFFF, false);
         }
 
         // List Background (Inset look)

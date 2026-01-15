@@ -244,6 +244,7 @@ public class FactionStateManager extends SavedData {
      * @throws RuntimeException If the player is not in a faction or not its owner
      */
     public void setFriendlyFire(ServerPlayer requestingUser, boolean state) throws RuntimeException {
+        if(!playerIsOwnerOrOfficer(requestingUser.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
         Faction faction = getFactionByPlayer(requestingUser.getUUID());
         faction.setFriendlyFire(state);
         this.setDirty();
