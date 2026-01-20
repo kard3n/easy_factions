@@ -1,10 +1,8 @@
 package com.jpreiss.easy_factions.network.packet.gui;
 
-import com.jpreiss.easy_factions.client.gui.FactionScreen;
-import com.jpreiss.easy_factions.client.gui.NoFactionScreen;
+import com.jpreiss.easy_factions.client.ClientPacketHandler;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -171,13 +169,69 @@ public class PacketSyncFactionGuiData {
         );
     }
 
+    public boolean isInFaction() {
+        return inFaction;
+    }
+
+    public String getFactionName() {
+        return factionName;
+    }
+
+    public Map<UUID, MemberRank> getMemberRanks() {
+        return memberRanks;
+    }
+
+    public Map<UUID, String> getPlayerNames() {
+        return playerNames;
+    }
+
+    public List<UUID> getFactionInvites() {
+        return factionInvites;
+    }
+
+    public List<String> getPlayerInvites() {
+        return playerInvites;
+    }
+
+    public Map<String, RelationshipStatus> getOutgoingRelationships() {
+        return outgoingRelationships;
+    }
+
+    public List<String> getFactionNames() {
+        return factionNames;
+    }
+
+    public String getAllianceName() {
+        return allianceName;
+    }
+
+    public List<String> getAllianceMembers() {
+        return allianceMembers;
+    }
+
+    public List<String> getAllianceInvites() {
+        return allianceInvites;
+    }
+
+    public List<String> getAllianceNames() {
+        return allianceNames;
+    }
+
+    public Map<String, RelationshipStatus> getOutgoingAllianceRelations() {
+        return outgoingAllianceRelations;
+    }
+
+    public Map<String, RelationshipStatus> getIncomingAllianceRelations() {
+        return incomingAllianceRelations;
+    }
+
+    public boolean isFriendlyFire() {
+        return friendlyFire;
+    }
+
     public static void handle(PacketSyncFactionGuiData msg, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (msg.inFaction) {
-                Minecraft.getInstance().setScreen(new FactionScreen(msg.factionName, msg.memberRanks, msg.playerNames, msg.factionInvites, msg.outgoingRelationships, msg.factionNames, msg.allianceName, msg.allianceMembers, msg.allianceInvites, msg.allianceNames, msg.outgoingAllianceRelations, msg.incomingAllianceRelations, msg.friendlyFire));
-            } else {
-                Minecraft.getInstance().setScreen(new NoFactionScreen(msg.playerInvites));
-            }
+            ClientPacketHandler.handleSyncFactionGuiData(msg);
         }));
         ctx.get().setPacketHandled(true);
     }
