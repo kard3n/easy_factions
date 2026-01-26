@@ -260,7 +260,7 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(friendlyFireOn);
 
         Button friendlyFireOff = Button.builder(Component.literal("False"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(true));
+            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(false));
         }).bounds(contentStartX + 225, getContentTopY(), 50, 20).build();
         friendlyFireOff.active = this.friendlyFire && memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
         this.addRenderableWidget(friendlyFireOff);
