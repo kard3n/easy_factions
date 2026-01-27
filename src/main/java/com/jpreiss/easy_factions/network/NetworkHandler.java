@@ -40,6 +40,7 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketAllianceSetRelationAction.class, PacketAllianceSetRelationAction::encode, PacketAllianceSetRelationAction::decode, PacketAllianceSetRelationAction::handle);
         CHANNEL.registerMessage(id++, PacketFactionFriendlyFireToggle.class, PacketFactionFriendlyFireToggle::encode, PacketFactionFriendlyFireToggle::decode, PacketFactionFriendlyFireToggle::handle);
         CHANNEL.registerMessage(id++, PacketOpenErrorPopup.class, PacketOpenErrorPopup::encode, PacketOpenErrorPopup::decode, PacketOpenErrorPopup::handle);
+        CHANNEL.registerMessage(id++, PacketSetAbbreviation.class, PacketSetAbbreviation::encode, PacketSetAbbreviation::decode, PacketSetAbbreviation::handle);
     }
 
     /**

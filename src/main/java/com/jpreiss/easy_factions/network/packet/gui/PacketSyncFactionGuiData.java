@@ -27,6 +27,11 @@ public class PacketSyncFactionGuiData {
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
     private final Map<String, RelationshipStatus> incomingAllianceRelations;
     private final boolean friendlyFire;
+    private final int factionAbbreviationMaxLength;
+    private final int allianceAbbreviationMaxLength;
+    private final boolean factionAbbreviationChangeAllowed;
+    private final boolean allianceAbbreviationChangeAllowed;
+
 
 
     // Constructor for when player IS in a faction
@@ -42,7 +47,11 @@ public class PacketSyncFactionGuiData {
             List<String> allianceNames,
             Map<String, RelationshipStatus> outgoingAllianceRelations,
             Map<String, RelationshipStatus> incomingAllianceRelations,
-            boolean friendlyFire) {
+            boolean friendlyFire,
+            int factionAbbreviationMaxLength,
+            int allianceAbbreviationMaxLength,
+            boolean factionAbbreviationChangeAllowed,
+            boolean allianceAbbreviationChangeAllowed) {
         this.inFaction = true;
         this.factionName = factionName;
         this.memberRanks = memberRanks;
@@ -58,6 +67,10 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = outgoingAllianceRelations;
         this.incomingAllianceRelations = incomingAllianceRelations;
         this.friendlyFire = friendlyFire;
+        this.factionAbbreviationMaxLength = factionAbbreviationMaxLength;
+        this.allianceAbbreviationMaxLength = allianceAbbreviationMaxLength;
+        this.factionAbbreviationChangeAllowed = factionAbbreviationChangeAllowed;
+        this.allianceAbbreviationChangeAllowed = allianceAbbreviationChangeAllowed;
     }
 
     // Constructor for when player is NOT in a faction
@@ -77,6 +90,10 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = new HashMap<>();
         this.incomingAllianceRelations = new HashMap<>();
         this.friendlyFire = false;
+        this.factionAbbreviationMaxLength = 0;
+        this.allianceAbbreviationMaxLength = 0;
+        this.factionAbbreviationChangeAllowed = false;
+        this.allianceAbbreviationChangeAllowed = false;
     }
 
     // Internal constructor for decoding
@@ -95,7 +112,11 @@ public class PacketSyncFactionGuiData {
             List<String> allianceNames,
             Map<String, RelationshipStatus> outgoingAllianceRelations,
             Map<String, RelationshipStatus> incomingAllianceRelations,
-            boolean friendlyFire
+            boolean friendlyFire,
+            int factionAbbreviationMaxLength,
+            int allianceAbbreviationMaxLength,
+            boolean factionAbbreviationChangeAllowed,
+            boolean allianceAbbreviationChangeAllowed
     ) {
         this.inFaction = inFaction;
         this.factionName = factionName;
@@ -112,6 +133,10 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = outgoingAllianceRelations;
         this.incomingAllianceRelations = incomingAllianceRelations;
         this.friendlyFire = friendlyFire;
+        this.factionAbbreviationMaxLength = factionAbbreviationMaxLength;
+        this.allianceAbbreviationMaxLength = allianceAbbreviationMaxLength;
+        this.factionAbbreviationChangeAllowed = factionAbbreviationChangeAllowed;
+        this.allianceAbbreviationChangeAllowed = allianceAbbreviationChangeAllowed;
     }
 
     public static void encode(PacketSyncFactionGuiData msg, FriendlyByteBuf buf) {
@@ -130,6 +155,10 @@ public class PacketSyncFactionGuiData {
         buf.writeMap(msg.outgoingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
         buf.writeMap(msg.incomingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
         buf.writeBoolean(msg.friendlyFire);
+        buf.writeInt(msg.factionAbbreviationMaxLength);
+        buf.writeInt(msg.allianceAbbreviationMaxLength);
+        buf.writeBoolean(msg.factionAbbreviationChangeAllowed);
+        buf.writeBoolean(msg.allianceAbbreviationChangeAllowed);
     }
 
     public static PacketSyncFactionGuiData decode(FriendlyByteBuf buf) {
@@ -149,6 +178,11 @@ public class PacketSyncFactionGuiData {
         Map<String, RelationshipStatus> outgoingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
         Map<String, RelationshipStatus> incomingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
         boolean friendlyFire = buf.readBoolean();
+        int factionAbbreviationMaxLength = buf.readInt();
+        int allianceAbbreviationMaxLength = buf.readInt();
+        boolean factionAbbreviationChangeAllowed = buf.readBoolean();
+        boolean allianceAbbreviationChangeAllowed = buf.readBoolean();
+
 
         return new PacketSyncFactionGuiData(
                 inFaction,
@@ -165,7 +199,11 @@ public class PacketSyncFactionGuiData {
                 allianceNames,
                 outgoingAllianceRelations,
                 incomingAllianceRelations,
-                friendlyFire
+                friendlyFire,
+                factionAbbreviationMaxLength,
+                allianceAbbreviationMaxLength,
+                factionAbbreviationChangeAllowed,
+                allianceAbbreviationChangeAllowed
         );
     }
 
@@ -227,6 +265,22 @@ public class PacketSyncFactionGuiData {
 
     public boolean isFriendlyFire() {
         return friendlyFire;
+    }
+
+    public int getFactionAbbreviationMaxLength() {
+        return factionAbbreviationMaxLength;
+    }
+
+    public int getAllianceAbbreviationMaxLength() {
+        return allianceAbbreviationMaxLength;
+    }
+
+    public boolean isFactionAbbreviationChangeAllowed() {
+        return factionAbbreviationChangeAllowed;
+    }
+
+    public boolean isAllianceAbbreviationChangeAllowed() {
+        return allianceAbbreviationChangeAllowed;
     }
 
     public static void handle(PacketSyncFactionGuiData msg, Supplier<NetworkEvent.Context> ctx) {

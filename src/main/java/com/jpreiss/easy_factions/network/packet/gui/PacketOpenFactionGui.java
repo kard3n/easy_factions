@@ -4,6 +4,7 @@ import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
@@ -96,8 +97,10 @@ public class PacketOpenFactionGui {
 
                 List<String> allianceNames = allianceManager.getAllianceNames().stream().toList();
 
+                boolean factionAllowAbbreviationChange = ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || faction.getAbbreviation() == null);
+                boolean allianceAllowAbbreviationChange = alliance != null && ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || alliance.getAbbreviation() == null);
 
-                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations, incomingAllianceRelations, faction.getFriendlyFire());
+                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations, incomingAllianceRelations, faction.getFriendlyFire(), ServerConfig.factionAbbreviationMaxLength, ServerConfig.allianceAbbreviationMaxLength, factionAllowAbbreviationChange, allianceAllowAbbreviationChange);
             } else {
                 // Player is NOT in a faction -> Return pending invites
                 response = new PacketSyncFactionGuiData(factionManager.getInvitesForPlayer(player.getUUID()));

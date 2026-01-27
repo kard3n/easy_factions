@@ -243,6 +243,8 @@ public class AllianceStateManager extends SavedData {
 
     public void setAbbreviation(String allianceName, String abbreviation, MinecraftServer server) throws RuntimeException {
         if (!alliances.containsKey(allianceName)) throw new RuntimeException("The alliance does not exist.");
+        if(abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength) throw new RuntimeException("The abbreviation is too long.");
+        if(abbreviation.length() < ServerConfig.allianceAbbreviationMinLength) throw new RuntimeException("The abbreviation is too short.");
         alliances.get(allianceName).setAbbreviation(abbreviation);
         NetworkManager.broadcastAllianceAbbreviationUpdate(allianceName, abbreviation, server);
         this.setDirty();

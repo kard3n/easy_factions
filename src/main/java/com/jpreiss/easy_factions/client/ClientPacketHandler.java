@@ -11,21 +11,7 @@ public class ClientPacketHandler {
     // Handles opening PacketSyncFactionGuiData on the clientside. Prevents import of screen class on serverside
     public static void handleSyncFactionGuiData(PacketSyncFactionGuiData msg) {
         if (msg.isInFaction()) {
-            Minecraft.getInstance().setScreen(new FactionScreen(
-                    msg.getFactionName(),
-                    msg.getMemberRanks(),
-                    msg.getPlayerNames(),
-                    msg.getFactionInvites(),
-                    msg.getOutgoingRelationships(),
-                    msg.getFactionNames(),
-                    msg.getAllianceName(),
-                    msg.getAllianceMembers(),
-                    msg.getAllianceInvites(),
-                    msg.getAllianceNames(),
-                    msg.getOutgoingAllianceRelations(),
-                    msg.getIncomingAllianceRelations(),
-                    msg.isFriendlyFire()
-            ));
+            Minecraft.getInstance().setScreen(new FactionScreen(msg));
         } else {
             Minecraft.getInstance().setScreen(new NoFactionScreen(msg.getPlayerInvites()));
         }

@@ -403,6 +403,8 @@ public class FactionStateManager extends SavedData {
      */
     public void setAbbreviation(String factionName, String abbreviation, MinecraftServer server) throws RuntimeException {
         if (!factions.containsKey(factionName)) throw new RuntimeException("The faction does not exist.");
+        if(abbreviation.length() > ServerConfig.factionAbbreviationMaxLength) throw new RuntimeException("The abbreviation is too long.");
+        if(abbreviation.length() < ServerConfig.factionAbbreviationMinLength) throw new RuntimeException("The abbreviation is too short.");
         factions.get(factionName).setAbbreviation(abbreviation);
         NetworkManager.broadcastFactionAbbreviationUpdate(factionName, abbreviation, server);
         this.setDirty();

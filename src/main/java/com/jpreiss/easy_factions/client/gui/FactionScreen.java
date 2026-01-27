@@ -1,13 +1,11 @@
 package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.client.ClientConfig;
+import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
-import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceLeaveAction;
-import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceOperation;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionFriendlyFireToggle;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionLeaveAction;
+import com.jpreiss.easy_factions.network.packet.gui.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -61,6 +59,10 @@ public class FactionScreen extends Screen {
     private ScrollableAllianceInviteList allianceInviteList;
     private ScrollableAllianceRelationsList allianceRelationsList;
 
+    // Inputs
+    private EditBox factionAbbrBox;
+    private EditBox allianceAbbrBox;
+
     // Data
     private final String factionName;
     private final Map<UUID, MemberRank> memberRanks;
@@ -76,24 +78,34 @@ public class FactionScreen extends Screen {
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
     private final Map<String, RelationshipStatus> incomingAllianceRelations;
     private final boolean friendlyFire;
+    private final int factionAbbreviationMaxLength;
+    private final int allianceAbbreviationMaxLength;
+    private final boolean factionAbbreviationChangeAllowed;
+    private final boolean allianceAbbreviationChangeAllowed;
 
-    public FactionScreen(String factionName, Map<UUID, MemberRank> memberRanks, Map<UUID, String> playerNames, List<UUID> factionInvites, Map<String, RelationshipStatus> outgoingFactionRelations, List<String> factionNames, String allianceName, List<String> allianceMembers, List<String> allianceInvites, List<String> allianceNames, Map<String, RelationshipStatus> outgoingAllianceRelations, Map<String, RelationshipStatus> incomingAllianceRelations, boolean friendlyFire) {
+
+
+    public FactionScreen(PacketSyncFactionGuiData data) {
         super(Component.literal("Easy Factions"));
-        this.factionName = factionName;
-        this.memberRanks = memberRanks;
-        this.playerNames = playerNames;
+        this.factionName = data.getFactionName();
+        this.memberRanks = data.getMemberRanks();
+        this.playerNames = data.getPlayerNames();
         assert Minecraft.getInstance().player != null;
         this.clientPlayerUUID = Minecraft.getInstance().player.getUUID();
-        this.factionInvites = factionInvites;
-        this.outgoingFactionRelations = outgoingFactionRelations;
-        this.factionNames = factionNames;
-        this.allianceName = allianceName;
-        this.allianceMembers = allianceMembers;
-        this.allianceInvites = allianceInvites;
-        this.allianceNames = allianceNames;
-        this.outgoingAllianceRelations = outgoingAllianceRelations;
-        this.incomingAllianceRelations = incomingAllianceRelations;
-        this.friendlyFire = friendlyFire;
+        this.factionInvites = data.getFactionInvites();
+        this.outgoingFactionRelations = data.getOutgoingRelationships();
+        this.factionNames = data.getFactionNames();
+        this.allianceName = data.getAllianceName();
+        this.allianceMembers = data.getAllianceMembers();
+        this.allianceInvites = data.getAllianceInvites();
+        this.allianceNames = data.getAllianceNames();
+        this.outgoingAllianceRelations = data.getOutgoingAllianceRelations();
+        this.incomingAllianceRelations = data.getIncomingAllianceRelations();
+        this.friendlyFire = data.isFriendlyFire();
+        this.factionAbbreviationMaxLength = data.getFactionAbbreviationMaxLength();
+        this.allianceAbbreviationMaxLength = data.getAllianceAbbreviationMaxLength();
+        this.factionAbbreviationChangeAllowed = data.isFactionAbbreviationChangeAllowed();
+        this.allianceAbbreviationChangeAllowed = data.isAllianceAbbreviationChangeAllowed();
     }
 
     @Override
@@ -252,7 +264,7 @@ public class FactionScreen extends Screen {
     }
 
     private void initFactionOptionsTab(int topY, int bottomY) {
-
+        // Friendly Fire Buttons
         Button friendlyFireOn = Button.builder(Component.literal("True"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(true));
         }).bounds(contentStartX + 170, getContentTopY(), 50, 20).build();
@@ -265,8 +277,24 @@ public class FactionScreen extends Screen {
         friendlyFireOff.active = this.friendlyFire && memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
         this.addRenderableWidget(friendlyFireOff);
 
+        String factionAbbreviation = ClientFactionData.getAbbreviation(this.factionName);
+        if (factionAbbreviation == null) factionAbbreviation = "";
 
-        // Center the button in the content area
+
+        // Abbreviation Input Box
+        boolean allowAbbreviationChange = this.factionAbbreviationChangeAllowed && memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
+        this.factionAbbrBox = new EditBox(this.font, this.contentStartX + this.spacing + 120, this.getContentTopY() + buttonHeight + spacing * 2 , 90, 20, Component.literal(factionAbbreviation));
+        this.factionAbbrBox.setMaxLength(this.factionAbbreviationMaxLength);
+        this.factionAbbrBox.setEditable(allowAbbreviationChange);
+        this.addRenderableWidget(this.factionAbbrBox);
+
+        // Abbreviation Submit Button
+        Button abbrSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketSetAbbreviation(this.factionAbbrBox.getValue(), false));
+        }).bounds(this.contentStartX + spacing * 2 + 120 + 90, this.getContentTopY() + spacing * 2 + this.buttonHeight, 50, 20).build());
+        abbrSubmitBtn.active = allowAbbreviationChange;
+
+        // Leave Faction Button (Bottom)
         this.addRenderableWidget(Button.builder(Component.literal("Leave Faction"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketFactionLeaveAction());
         }).bounds(this.windowStartX + this.imageWidth - this.spacing - 100, this.getContentBottomY() - buttonHeight, 100, 20).build());
@@ -375,9 +403,24 @@ public class FactionScreen extends Screen {
     }
 
     private void initAllianceOptionsTab(int topY, int bottomY) {
+
+        // Alliance Abbreviation Input Box
+        boolean allowAbbreviationChange = this.allianceAbbreviationChangeAllowed && memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
+        this.allianceAbbrBox = new EditBox(this.font, this.contentStartX + spacing + 120, getContentTopY(), 90, 20, Component.literal("Abbreviation"));
+        this.allianceAbbrBox.setMaxLength(this.allianceAbbreviationMaxLength);
+        this.allianceAbbrBox.setEditable(allowAbbreviationChange);
+        this.addRenderableWidget(this.allianceAbbrBox);
+
+        // AbbreviationSubmit Button
+        Button abbrSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketSetAbbreviation(this.allianceAbbrBox.getValue(), true));
+        }).bounds(this.contentStartX + spacing * 2 + 120 + 90, getContentTopY(), 50, 20).build());
+        abbrSubmitBtn.active = allowAbbreviationChange;
+
+        // Leave Alliance Button
         this.addRenderableWidget(Button.builder(Component.literal("Leave Alliance"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketAllianceLeaveAction());
-        }).bounds(this.windowStartX + (this.imageWidth / 2) - 50, topY + 20, 100, 20).build());
+        }).bounds(this.windowStartX + (this.imageWidth / 2) - 50, bottomY - buttonHeight, 100, 20).build());
     }
 
     private void initSettingsTab() {
@@ -450,9 +493,14 @@ public class FactionScreen extends Screen {
             int gap = 25;
             guiGraphics.drawString(this.font, "Show Faction Abbreviation", contentStartX, contentStartY + 8, 0xFFFFFF, false);
             guiGraphics.drawString(this.font, "Show Alliance Abbreviation", contentStartX, contentStartY + gap + 8, 0xFFFFFF, false);
-        }
-        else if( currentMainTab == MainTab.FACTION && currentFactionTab == FactionTab.OPTIONS){
+        } else if (currentMainTab == MainTab.FACTION && currentFactionTab == FactionTab.OPTIONS) {
+            // Friendly Fire Label
             guiGraphics.drawString(this.font, "Enable Friendly Fire", contentStartX + spacing, this.getContentTopY() + 8, 0xFFFFFF, false);
+            // Abbreviation Label
+            guiGraphics.drawString(this.font, "Abbreviation", contentStartX + spacing, this.getContentTopY() + 25 + 8, 0xFFFFFF, false);
+        } else if (currentMainTab == MainTab.ALLIANCE && currentAllianceTab == AllianceTab.OPTIONS && allianceName != null) {
+            // Alliance Abbreviation Label
+            guiGraphics.drawString(this.font, "Abbreviation", contentStartX + spacing, this.getContentTopY() + 8, 0xFFFFFF, false);
         }
 
         // List Background (Inset look)
