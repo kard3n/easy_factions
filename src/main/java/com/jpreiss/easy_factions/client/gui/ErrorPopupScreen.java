@@ -24,9 +24,7 @@ public class ErrorPopupScreen extends Screen {
         this.windowStartX = (this.width - this.imageWidth) / 2;
         this.windowStartY = (this.height - this.imageHeight) / 2;
 
-        this.addRenderableWidget(Button.builder(Component.literal("Close"), (btn) -> {
-            this.onClose();
-        }).bounds(this.windowStartX + (this.imageWidth / 2) - 40, this.windowStartY + this.imageHeight - 30, 80, 20).build());
+        this.addRenderableWidget(Button.builder(Component.literal("Close"), (btn) -> this.onClose()).bounds(this.windowStartX + (this.imageWidth / 2) - 40, this.windowStartY + this.imageHeight - 30, 80, 20).build());
     }
 
     @Override
@@ -67,6 +65,7 @@ public class ErrorPopupScreen extends Screen {
 
     @Override
     public void onClose() {
+        if(this.minecraft == null) return;
         this.minecraft.setScreen(this.parentScreen);
     }
 }
