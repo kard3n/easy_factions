@@ -1,11 +1,13 @@
 package com.jpreiss.easy_factions.network.packet.gui;
 
+import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.function.Supplier;
 
@@ -40,7 +42,7 @@ public class PacketAllianceLeaveAction {
                 // If successful, re-open/refresh the GUI
                 PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);
             } catch (Exception e) {
-                // Ideally send an error message packet back to display in GUI
+                NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
             }
         });
         ctx.get().setPacketHandled(true);

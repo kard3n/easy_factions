@@ -11,7 +11,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 public class NetworkHandler {
-    private static final String PROTOCOL_VERSION = "1.3";
+    private static final String PROTOCOL_VERSION = "1.4";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(EasyFactions.MODID, "main"),
@@ -39,6 +39,7 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketAllianceLeaveAction.class, PacketAllianceLeaveAction::encode, PacketAllianceLeaveAction::decode, PacketAllianceLeaveAction::handle);
         CHANNEL.registerMessage(id++, PacketAllianceSetRelationAction.class, PacketAllianceSetRelationAction::encode, PacketAllianceSetRelationAction::decode, PacketAllianceSetRelationAction::handle);
         CHANNEL.registerMessage(id++, PacketFactionFriendlyFireToggle.class, PacketFactionFriendlyFireToggle::encode, PacketFactionFriendlyFireToggle::decode, PacketFactionFriendlyFireToggle::handle);
+        CHANNEL.registerMessage(id++, PacketOpenErrorPopup.class, PacketOpenErrorPopup::encode, PacketOpenErrorPopup::decode, PacketOpenErrorPopup::handle);
     }
 
     /**

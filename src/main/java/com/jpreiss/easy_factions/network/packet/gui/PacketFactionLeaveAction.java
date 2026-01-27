@@ -1,5 +1,6 @@
 package com.jpreiss.easy_factions.network.packet.gui;
 
+import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
@@ -39,7 +40,7 @@ public class PacketFactionLeaveAction {
                 // If successful, re-open/refresh the GUI
                 PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);
             } catch (Exception e) {
-                // Ideally send an error message packet back to display in GUI
+                NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
             }
         });
         ctx.get().setPacketHandled(true);
