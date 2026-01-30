@@ -27,6 +27,8 @@ public class PacketSyncFactionGuiData {
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
     private final Map<String, RelationshipStatus> incomingAllianceRelations;
     private final boolean friendlyFire;
+    private final int factionColor;
+    private final int allianceColor;
     private final int factionAbbreviationMaxLength;
     private final int allianceAbbreviationMaxLength;
     private final boolean factionAbbreviationChangeAllowed;
@@ -48,6 +50,8 @@ public class PacketSyncFactionGuiData {
             Map<String, RelationshipStatus> outgoingAllianceRelations,
             Map<String, RelationshipStatus> incomingAllianceRelations,
             boolean friendlyFire,
+            int factionColor,
+            int allianceColor,
             int factionAbbreviationMaxLength,
             int allianceAbbreviationMaxLength,
             boolean factionAbbreviationChangeAllowed,
@@ -67,6 +71,8 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = outgoingAllianceRelations;
         this.incomingAllianceRelations = incomingAllianceRelations;
         this.friendlyFire = friendlyFire;
+        this.factionColor = factionColor;
+        this.allianceColor = allianceColor;
         this.factionAbbreviationMaxLength = factionAbbreviationMaxLength;
         this.allianceAbbreviationMaxLength = allianceAbbreviationMaxLength;
         this.factionAbbreviationChangeAllowed = factionAbbreviationChangeAllowed;
@@ -90,6 +96,8 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = new HashMap<>();
         this.incomingAllianceRelations = new HashMap<>();
         this.friendlyFire = false;
+        this.factionColor = 0xFFFFFF;
+        this.allianceColor = 0xFFFFFF;
         this.factionAbbreviationMaxLength = 0;
         this.allianceAbbreviationMaxLength = 0;
         this.factionAbbreviationChangeAllowed = false;
@@ -113,6 +121,8 @@ public class PacketSyncFactionGuiData {
             Map<String, RelationshipStatus> outgoingAllianceRelations,
             Map<String, RelationshipStatus> incomingAllianceRelations,
             boolean friendlyFire,
+            int factionColor,
+            int allianceColor,
             int factionAbbreviationMaxLength,
             int allianceAbbreviationMaxLength,
             boolean factionAbbreviationChangeAllowed,
@@ -133,6 +143,8 @@ public class PacketSyncFactionGuiData {
         this.outgoingAllianceRelations = outgoingAllianceRelations;
         this.incomingAllianceRelations = incomingAllianceRelations;
         this.friendlyFire = friendlyFire;
+        this.factionColor = factionColor;
+        this.allianceColor = allianceColor;
         this.factionAbbreviationMaxLength = factionAbbreviationMaxLength;
         this.allianceAbbreviationMaxLength = allianceAbbreviationMaxLength;
         this.factionAbbreviationChangeAllowed = factionAbbreviationChangeAllowed;
@@ -155,6 +167,8 @@ public class PacketSyncFactionGuiData {
         buf.writeMap(msg.outgoingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
         buf.writeMap(msg.incomingAllianceRelations, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
         buf.writeBoolean(msg.friendlyFire);
+        buf.writeInt(msg.factionColor);
+        buf.writeInt(msg.allianceColor);
         buf.writeInt(msg.factionAbbreviationMaxLength);
         buf.writeInt(msg.allianceAbbreviationMaxLength);
         buf.writeBoolean(msg.factionAbbreviationChangeAllowed);
@@ -178,6 +192,8 @@ public class PacketSyncFactionGuiData {
         Map<String, RelationshipStatus> outgoingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
         Map<String, RelationshipStatus> incomingAllianceRelations = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
         boolean friendlyFire = buf.readBoolean();
+        int factionColor = buf.readInt();
+        int allianceColor = buf.readInt();
         int factionAbbreviationMaxLength = buf.readInt();
         int allianceAbbreviationMaxLength = buf.readInt();
         boolean factionAbbreviationChangeAllowed = buf.readBoolean();
@@ -200,6 +216,8 @@ public class PacketSyncFactionGuiData {
                 outgoingAllianceRelations,
                 incomingAllianceRelations,
                 friendlyFire,
+                factionColor,
+                allianceColor,
                 factionAbbreviationMaxLength,
                 allianceAbbreviationMaxLength,
                 factionAbbreviationChangeAllowed,
@@ -265,6 +283,14 @@ public class PacketSyncFactionGuiData {
 
     public boolean isFriendlyFire() {
         return friendlyFire;
+    }
+
+    public int getFactionColor() {
+        return factionColor;
+    }
+
+    public int getAllianceColor() {
+        return allianceColor;
     }
 
     public int getFactionAbbreviationMaxLength() {

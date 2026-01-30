@@ -62,6 +62,8 @@ public class FactionScreen extends Screen {
     // Inputs
     private EditBox factionAbbrBox;
     private EditBox allianceAbbrBox;
+    private EditBox factionColorBox;
+    private EditBox allianceColorBox;
 
     // Data
     private final String factionName;
@@ -78,6 +80,8 @@ public class FactionScreen extends Screen {
     private final Map<String, RelationshipStatus> outgoingAllianceRelations;
     private final Map<String, RelationshipStatus> incomingAllianceRelations;
     private final boolean friendlyFire;
+    private final int factionColor;
+    private final int allianceColor;
     private final int factionAbbreviationMaxLength;
     private final int allianceAbbreviationMaxLength;
     private final boolean factionAbbreviationChangeAllowed;
@@ -102,6 +106,8 @@ public class FactionScreen extends Screen {
         this.outgoingAllianceRelations = data.getOutgoingAllianceRelations();
         this.incomingAllianceRelations = data.getIncomingAllianceRelations();
         this.friendlyFire = data.isFriendlyFire();
+        this.factionColor = data.getFactionColor();
+        this.allianceColor = data.getAllianceColor();
         this.factionAbbreviationMaxLength = data.getFactionAbbreviationMaxLength();
         this.allianceAbbreviationMaxLength = data.getAllianceAbbreviationMaxLength();
         this.factionAbbreviationChangeAllowed = data.isFactionAbbreviationChangeAllowed();
@@ -294,6 +300,17 @@ public class FactionScreen extends Screen {
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, this.getContentTopY() + spacing * 2 + this.buttonHeight, 50, 20).build());
         abbrSubmitBtn.active = allowAbbreviationChange;
 
+        // Color Input Box
+        this.factionColorBox = new EditBox(this.font, this.contentStartX + this.spacing + 120, this.getContentTopY() + buttonHeight * 2 + spacing * 3, 90, 20, Component.literal("Color"));
+        this.factionColorBox.setValue(String.format("#%06X", (0xFFFFFF & this.factionColor)));
+        this.factionColorBox.setEditable(memberRanks.get(clientPlayerUUID) == MemberRank.OWNER);
+        this.addRenderableWidget(this.factionColorBox);
+
+        Button colorSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketSetColor(this.factionColorBox.getValue(), false));
+        }).bounds(this.contentStartX + spacing * 2 + 120 + 90, this.getContentTopY() + spacing * 3 + this.buttonHeight * 2, 50, 20).build());
+        colorSubmitBtn.active = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
+
         // Leave Faction Button (Bottom)
         this.addRenderableWidget(Button.builder(Component.literal("Leave Faction"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketFactionLeaveAction());
@@ -417,6 +434,17 @@ public class FactionScreen extends Screen {
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, getContentTopY(), 50, 20).build());
         abbrSubmitBtn.active = allowAbbreviationChange;
 
+        // Alliance Color Input Box
+        this.allianceColorBox = new EditBox(this.font, this.contentStartX + spacing + 120, getContentTopY() + buttonHeight + spacing, 90, 20, Component.literal("Color"));
+        this.allianceColorBox.setValue(String.format("#%06X", (0xFFFFFF & this.allianceColor)));
+        this.allianceColorBox.setEditable(memberRanks.get(clientPlayerUUID) == MemberRank.OWNER);
+        this.addRenderableWidget(this.allianceColorBox);
+
+        Button colorSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
+            NetworkHandler.CHANNEL.sendToServer(new PacketSetColor(this.allianceColorBox.getValue(), true));
+        }).bounds(this.contentStartX + spacing * 2 + 120 + 90, getContentTopY() + buttonHeight + spacing, 50, 20).build());
+        colorSubmitBtn.active = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
+
         // Leave Alliance Button
         this.addRenderableWidget(Button.builder(Component.literal("Leave Alliance"), (btn) -> {
             NetworkHandler.CHANNEL.sendToServer(new PacketAllianceLeaveAction());
@@ -484,9 +512,9 @@ public class FactionScreen extends Screen {
 
         // Draw Subtitle (e.g., faction name)
         if (currentMainTab == MainTab.FACTION) {
-            guiGraphics.drawString(this.font, "Faction: " + this.factionName, windowStartX + 10, windowStartY + 37, 0xAAAAAA);
+            guiGraphics.drawString(this.font, "Faction: " + this.factionName, windowStartX + 10, windowStartY + 37, this.factionColor);
         } else if (currentMainTab == MainTab.ALLIANCE && allianceName != null) {
-            guiGraphics.drawString(this.font, "Alliance: " + this.allianceName, windowStartX + 10, windowStartY + 37, 0xAAAAAA);
+            guiGraphics.drawString(this.font, "Alliance: " + this.allianceName, windowStartX + 10, windowStartY + 37, this.allianceColor);
         }
 
         if (currentMainTab == MainTab.SETTINGS) {
@@ -498,9 +526,13 @@ public class FactionScreen extends Screen {
             guiGraphics.drawString(this.font, "Enable Friendly Fire", contentStartX + spacing, this.getContentTopY() + 8, 0xFFFFFF, false);
             // Abbreviation Label
             guiGraphics.drawString(this.font, "Abbreviation", contentStartX + spacing, this.getContentTopY() + 25 + 8, 0xFFFFFF, false);
+            // Color Label
+            guiGraphics.drawString(this.font, "Color", contentStartX + spacing, this.getContentTopY() + 50 + 8, 0xFFFFFF, false);
         } else if (currentMainTab == MainTab.ALLIANCE && currentAllianceTab == AllianceTab.OPTIONS && allianceName != null) {
             // Alliance Abbreviation Label
             guiGraphics.drawString(this.font, "Abbreviation", contentStartX + spacing, this.getContentTopY() + 8, 0xFFFFFF, false);
+            // Color Label
+            guiGraphics.drawString(this.font, "Color", contentStartX + spacing, this.getContentTopY() + 25 + 8, 0xFFFFFF, false);
         }
 
         // List Background (Inset look)

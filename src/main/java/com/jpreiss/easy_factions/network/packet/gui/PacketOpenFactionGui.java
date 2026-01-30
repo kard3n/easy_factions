@@ -87,11 +87,13 @@ public class PacketOpenFactionGui {
                 List<String> allianceInvites = new ArrayList<>();
                 Map<String, RelationshipStatus> outgoingAllianceRelations = new HashMap<>();
                 Map<String, RelationshipStatus> incomingAllianceRelations = new HashMap<>();
+                int allianceColor = 0xFFFFFF;
                 if (alliance != null) {
                     allianceMembers.addAll(alliance.getMembers());
                     allianceInvites.addAll(alliance.getInvited());
                     outgoingAllianceRelations.putAll(alliance.getOutgoingRelations());
                     incomingAllianceRelations.putAll(alliance.getIncomingRelations());
+                    allianceColor = alliance.getColor();
                 }
                 String allianceName = alliance != null ? alliance.getName() : null;
 
@@ -100,7 +102,27 @@ public class PacketOpenFactionGui {
                 boolean factionAllowAbbreviationChange = ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || faction.getAbbreviation() == null);
                 boolean allianceAllowAbbreviationChange = alliance != null && ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || alliance.getAbbreviation() == null);
 
-                response = new PacketSyncFactionGuiData(faction.getName(), memberRanks, playerNames, invitedUsers, outgoingRelationships, factionNames, allianceName, allianceMembers, allianceInvites, allianceNames, outgoingAllianceRelations, incomingAllianceRelations, faction.getFriendlyFire(), ServerConfig.factionAbbreviationMaxLength, ServerConfig.allianceAbbreviationMaxLength, factionAllowAbbreviationChange, allianceAllowAbbreviationChange);
+                response = new PacketSyncFactionGuiData(
+                        faction.getName(),
+                        memberRanks,
+                        playerNames,
+                        invitedUsers,
+                        outgoingRelationships,
+                        factionNames,
+                        allianceName,
+                        allianceMembers,
+                        allianceInvites,
+                        allianceNames,
+                        outgoingAllianceRelations,
+                        incomingAllianceRelations,
+                        faction.getFriendlyFire(),
+                        faction.getColor(),
+                        allianceColor,
+                        ServerConfig.factionAbbreviationMaxLength,
+                        ServerConfig.allianceAbbreviationMaxLength,
+                        factionAllowAbbreviationChange,
+                        allianceAllowAbbreviationChange
+                );
             } else {
                 // Player is NOT in a faction -> Return pending invites
                 response = new PacketSyncFactionGuiData(factionManager.getInvitesForPlayer(player.getUUID()));
