@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.client.ClientConfig;
+import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
@@ -292,6 +293,7 @@ public class FactionScreen extends Screen {
         this.factionAbbrBox = new EditBox(this.font, this.contentStartX + this.spacing + 120, this.getContentTopY() + buttonHeight + spacing * 2 , 90, 20, Component.literal(factionAbbreviation));
         this.factionAbbrBox.setMaxLength(this.factionAbbreviationMaxLength);
         this.factionAbbrBox.setEditable(allowAbbreviationChange);
+        this.factionAbbrBox.setValue(factionAbbreviation);
         this.addRenderableWidget(this.factionAbbrBox);
 
         // Abbreviation Submit Button
@@ -423,9 +425,13 @@ public class FactionScreen extends Screen {
 
         // Alliance Abbreviation Input Box
         boolean allowAbbreviationChange = this.allianceAbbreviationChangeAllowed && memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
+        String allianceAbbreviation = ClientAllianceData.getAbbreviation(this.allianceName);
+        if (allianceAbbreviation == null) allianceAbbreviation = "";
+
         this.allianceAbbrBox = new EditBox(this.font, this.contentStartX + spacing + 120, getContentTopY(), 90, 20, Component.literal("Abbreviation"));
         this.allianceAbbrBox.setMaxLength(this.allianceAbbreviationMaxLength);
         this.allianceAbbrBox.setEditable(allowAbbreviationChange);
+        this.allianceAbbrBox.setValue(allianceAbbreviation);
         this.addRenderableWidget(this.allianceAbbrBox);
 
         // AbbreviationSubmit Button
