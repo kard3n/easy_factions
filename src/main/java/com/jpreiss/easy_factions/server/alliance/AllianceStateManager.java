@@ -19,7 +19,9 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * Manages the state and business logic of the mod
@@ -80,6 +82,7 @@ public class AllianceStateManager extends SavedData {
      * @throws RuntimeException If the player doesn't exist or the user is not the leader
      */
     public void inviteFaction(ServerPlayer invitingUser, String invitedFactionName, MinecraftServer server) throws RuntimeException {
+
         Faction invitingFaction = FactionStateManager.get(server).getOwnedFaction(invitingUser.getUUID());
         if (!factionAllianceMap.containsKey(invitingFaction.getName()))
             throw new RuntimeException("Your faction is not in an alliance. Create one first.");
@@ -104,10 +107,9 @@ public class AllianceStateManager extends SavedData {
      * @throws RuntimeException If the player doesn't exist or the user is not the leader
      */
     public void revokeInvitation(ServerPlayer revokingUser, String revokedFactionName, MinecraftServer server) throws RuntimeException {
-        Faction revokingFaction = FactionStateManager.get(server).getOwnedFaction(revokingUser.getUUID());
-        if (!factionAllianceMap.containsKey(revokingFaction.getName()))
-            throw new RuntimeException("Your faction is not in an alliance. Create one first.");
-        Alliance alliance = alliances.get(factionAllianceMap.get(revokingFaction.getName()));
+        FactionStateManager.get(server).playerOwnsFaction(revokingUser.getUUID());
+        Alliance alliance = getAllianceOrError(revokingUser, server);
+
         if (alliance.getMembers().contains(revokedFactionName))
             throw new RuntimeException("The requested faction is already in your alliance.");
 
@@ -259,13 +261,13 @@ public class AllianceStateManager extends SavedData {
         MinecraftServer server = player.getServer();
         if (server == null) throw new RuntimeException("The server is null.");
 
+        Alliance playerAlliance = getAllianceOrError(player, server);
+
         FactionStateManager factionStateManager = FactionStateManager.get(player.getServer());
         Faction playerFaction = factionStateManager.getFactionByPlayer(player.getUUID());
-        if (playerFaction == null) throw new RuntimeException("Faction not found");
 
-        Alliance playerAlliance = this.getAllianceByFaction(playerFaction.getName());
         Alliance otherAlliance = this.getAlliance(otherAllianceName);
-        if (playerAlliance == null || otherAlliance == null) throw new RuntimeException("The alliance does not exist");
+        if (otherAlliance == null) throw new RuntimeException("The alliance does not exist");
 
         if (status == RelationshipStatus.NEUTRAL) {
             otherAlliance.getIncomingRelations().remove(playerAlliance.getName());
@@ -277,6 +279,32 @@ public class AllianceStateManager extends SavedData {
 
         NetworkManager.broadcastFactionRelationshipUpdate(playerFaction, server, otherAllianceName, true);
         this.setDirty();
+    }
+
+    /**
+     * Set the color of a faction
+     */
+    public void setColor(String colorString, ServerPlayer user, MinecraftServer server) throws RuntimeException {
+        Alliance alliance = this.getAllianceOrError(user, server);
+        try{
+            Color color = Color.decode(colorString);
+            alliance.setColor(color.getRGB());
+        }
+        catch(NumberFormatException e){
+            throw new NumberFormatException("Not a valid color!");
+        }
+
+    }
+
+    private Alliance getAllianceOrError(ServerPlayer player, MinecraftServer server) {
+        FactionStateManager factionStateManager = FactionStateManager.get(server);
+        Faction playerFaction = factionStateManager.getFactionByPlayer(player.getUUID());
+        if (playerFaction == null) throw new RuntimeException("Faction not found");
+
+        Alliance playerAlliance = this.getAllianceByFaction(playerFaction.getName());
+        if (playerAlliance == null) throw new RuntimeException("You are not in an alliance!");
+
+        return playerAlliance;
     }
 
 

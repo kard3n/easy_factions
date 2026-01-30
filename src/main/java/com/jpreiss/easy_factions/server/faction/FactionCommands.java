@@ -8,6 +8,7 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -298,6 +299,28 @@ public class FactionCommands {
                                             }
                                             return 1;
                                         }))))
+                .then(Commands.literal("setColor")
+                        .requires(source -> {
+                            try {
+                                return FactionStateManager.get(source.getServer()).playerOwnsFaction(source.getPlayerOrException().getUUID());
+                            } catch (CommandSyntaxException e) {
+                                return false;
+                            }
+                        })
+                        .then(Commands.argument("color", StringArgumentType.greedyString()).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            String color = StringArgumentType.getString(context, "color");
+                            FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+
+                            try {
+                                data.setColor(color, player);
+                                context.getSource().sendSuccess(() -> Component.literal("Set color to \"" + color + "\"!"), false);
+                            } catch (RuntimeException e) {
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
+                            }
+
+                            return 1;
+                        })))
 
         );
     }

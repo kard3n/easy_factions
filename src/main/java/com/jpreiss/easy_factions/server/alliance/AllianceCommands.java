@@ -48,9 +48,8 @@ public class AllianceCommands {
                 .then(Commands.literal("invite")
                         .requires(source -> {
                             try {
-                                ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get(source.getServer()).getAllianceByFaction(FactionStateManager.get(source.getServer()).getOwnedFaction(player.getUUID()).getName()) != null;
-                            } catch (CommandSyntaxException | RuntimeException e) {
+                                return playerIsOwnerAndAllianceMember(source);
+                            } catch (RuntimeException e) {
                                 return false;
                             }
                         })
@@ -100,9 +99,8 @@ public class AllianceCommands {
                 .then(Commands.literal("leave")
                         .requires(source -> {
                             try {
-                                ServerPlayer player = source.getPlayerOrException();
-                                return AllianceStateManager.get(source.getServer()).getAllianceByFaction(FactionStateManager.get(source.getServer()).getFactionByPlayer(player.getUUID()).getName()) != null;
-                            } catch (CommandSyntaxException | RuntimeException e) {
+                                return playerIsOwnerAndAllianceMember(source);
+                            } catch (RuntimeException e) {
                                 return false;
                             }
                         })
@@ -166,17 +164,13 @@ public class AllianceCommands {
                                     return false;
                                 }
 
-                                MinecraftServer server = source.getServer();
-                                ServerPlayer player = source.getPlayerOrException();
-                                FactionStateManager factionManager = FactionStateManager.get(server);
-                                AllianceStateManager allianceManager = AllianceStateManager.get(server);
+                                Alliance alliance = getOwnedAllianceOrNull(source);
+                                if (alliance == null) {
+                                    return false;
+                                }
 
-                                Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
-
-                                Alliance alliance = allianceManager.getAllianceByFaction(playerFaction.getName());
-                                if (alliance == null) return false;
                                 return alliance.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
-                            } catch (CommandSyntaxException | RuntimeException e) {
+                            } catch (RuntimeException e) {
                                 return false;
                             }
                         })
@@ -204,20 +198,7 @@ public class AllianceCommands {
                                     return 1;
                                 })))
                 .then(Commands.literal("setRelation")
-                        .requires(source -> {
-                            try {
-                                MinecraftServer server = source.getServer();
-                                ServerPlayer player = source.getPlayerOrException();
-                                FactionStateManager factionManager = FactionStateManager.get(server);
-                                AllianceStateManager allianceManager = AllianceStateManager.get(server);
-
-                                Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
-
-                                return allianceManager.getAllianceByFaction(playerFaction.getName()) != null;
-                            } catch (CommandSyntaxException | RuntimeException e) {
-                                return false;
-                            }
-                        })
+                        .requires(AllianceCommands::playerIsOwnerAndAllianceMember)
                         .then(Commands.argument("targetAlliance", StringArgumentType.string())
                                 .suggests(OTHER_ALLIANCES)
                                 .then(Commands.argument("status", StringArgumentType.word())
@@ -241,6 +222,23 @@ public class AllianceCommands {
                                             }
                                             return 1;
                                         }))))
+                .then(Commands.literal("setColor")
+                        .requires(AllianceCommands::playerIsOwnerAndAllianceMember)
+                        .then(Commands.argument("color", StringArgumentType.greedyString()).executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            String color = StringArgumentType.getString(context, "color");
+                            MinecraftServer server = context.getSource().getServer();
+                            AllianceStateManager data = AllianceStateManager.get(server);
+
+                            try {
+                                data.setColor(color, player, server);
+                                context.getSource().sendSuccess(() -> Component.literal("Set color to \"" + color + "\"!"), false);
+                            } catch (RuntimeException e) {
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
+                            }
+
+                            return 1;
+                        })))
 
         );
     }
@@ -313,4 +311,37 @@ public class AllianceCommands {
 
         return  builder.buildFuture();
     };
+
+    private static Alliance getOwnedAllianceOrNull(CommandSourceStack source){
+        try {
+            MinecraftServer server = source.getServer();
+            ServerPlayer player = source.getPlayerOrException();
+            FactionStateManager factionManager = FactionStateManager.get(server);
+            AllianceStateManager allianceManager = AllianceStateManager.get(server);
+
+            Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
+
+            return allianceManager.getAllianceByFaction(playerFaction.getName());
+        } catch (CommandSyntaxException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns true if the player executing the command is the owner of a faction in an alliance
+     */
+    private static boolean playerIsOwnerAndAllianceMember(CommandSourceStack source){
+        try {
+            MinecraftServer server = source.getServer();
+            ServerPlayer player = source.getPlayerOrException();
+            FactionStateManager factionManager = FactionStateManager.get(server);
+            AllianceStateManager allianceManager = AllianceStateManager.get(server);
+
+            Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
+
+            return allianceManager.getAllianceByFaction(playerFaction.getName()) != null;
+        } catch (CommandSyntaxException | RuntimeException e) {
+            return false;
+        }
+    }
 }

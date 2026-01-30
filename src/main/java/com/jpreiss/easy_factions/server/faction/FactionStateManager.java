@@ -19,7 +19,9 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraftforge.common.MinecraftForge;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * Manages the state and business logic of the mod
@@ -315,6 +317,24 @@ public class FactionStateManager extends SavedData {
     public void removeOfficer(String officerName, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
         UUID newOfficer = Utils.getPlayerUUIDOffline(officerName, server); // Works offline
         removeOfficer(newOfficer, leader, server);
+    }
+
+    /**
+     * Set the color of a faction
+     */
+    public void setColor(String colorString, ServerPlayer user) throws RuntimeException {
+        if (!playerOwnsFaction(user.getUUID())) {
+            throw  new RuntimeException("You don't own this faction!");
+        }
+        try{
+            Faction faction = getFactionByPlayer(user.getUUID());
+            Color color = Color.decode(colorString);
+            faction.setColor(color.getRGB());
+        }
+        catch(NumberFormatException e){
+            throw new NumberFormatException("Not a valid color!");
+        }
+
     }
 
     public void setRelation(String otherFactionName, ServerPlayer player, RelationshipStatus status) throws RuntimeException {

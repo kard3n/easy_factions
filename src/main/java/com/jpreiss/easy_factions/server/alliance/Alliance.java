@@ -14,6 +14,7 @@ import java.util.Set;
 public class Alliance {
     private String name;
     private String abbreviation;
+    private int color = 0xFFFFFF;
     private Set<String> members;
     private Set<String> invited = new HashSet<>();
     // Outgoing relations (what this alliance set the status of others too)
@@ -77,6 +78,14 @@ public class Alliance {
         this.incomingRelations = incomingRelations;
     }
 
+    public int getColor() {
+        return color;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
+    }
+
     public static Alliance deserialize(CompoundTag allianceTag) {
         String name = allianceTag.getString("Name");
         String abbreviation = allianceTag.contains("Abbreviation") ? allianceTag.getString("Abbreviation") : null; // Could not exist (null)
@@ -102,11 +111,16 @@ public class Alliance {
         Alliance alliance = new Alliance(name, abbreviation, members);
         alliance.getInvited().addAll(invited);
 
-        if(allianceTag.contains("OutgoingRelations", Tag.TAG_LIST)){
+        if (allianceTag.contains("OutgoingRelations", Tag.TAG_LIST)) {
             ListTag outgoingRelationsTag = allianceTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
             alliance.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
         }
 
+        if (allianceTag.contains("Color", Tag.TAG_INT)) {
+            alliance.color = allianceTag.getInt("Color");
+        } else {
+            alliance.color = 0xFFFFFF;
+        }
 
         return alliance;
     }
@@ -136,6 +150,9 @@ public class Alliance {
 
         // Save outgoing relations
         allianceTag.put("OutgoingRelations", RelationshipSerializer.serialize(this.getOutgoingRelations()));
+
+
+        allianceTag.putInt("Color", this.getColor());
 
         return allianceTag;
     }

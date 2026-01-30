@@ -2,10 +2,7 @@ package com.jpreiss.easy_factions.server.faction;
 
 import com.jpreiss.easy_factions.common.RelationshipSerializer;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,6 +12,7 @@ import java.util.UUID;
 public class Faction {
     private String name;
     private String abbreviation;
+    private int color = 0xFFFFFF;
     private UUID owner;
     private Set<UUID> members = new HashSet<>();
     private Set<UUID> officers = new HashSet<>();
@@ -110,6 +108,14 @@ public class Faction {
         this.outgoingRelations = outgoingRelations;
     }
 
+    public int getColor() {
+        return color;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
+    }
+
     public static Faction deserialize(CompoundTag fTag) {
         String name = fTag.getString("Name");
         String abbreviation = fTag.contains("Abbreviation") ? fTag.getString("Abbreviation") : null; // Could not exist (null)
@@ -141,9 +147,15 @@ public class Faction {
         }
 
         // Add outgoing relationships
-        if(fTag.contains("OutgoingRelations", Tag.TAG_LIST)){
+        if (fTag.contains("OutgoingRelations", Tag.TAG_LIST)) {
             ListTag outgoingRelationsTag = fTag.getList("OutgoingRelations", Tag.TAG_COMPOUND);
             faction.setOutgoingRelations(RelationshipSerializer.deserialize(outgoingRelationsTag));
+        }
+
+        if (fTag.contains("Color", Tag.TAG_INT)) {
+            faction.color = fTag.getInt("Color");
+        } else {
+            faction.color = 0xFFFFFF;
         }
 
         return faction;
@@ -184,6 +196,8 @@ public class Faction {
 
         // Save outgoing relations
         fTag.put("OutgoingRelations", RelationshipSerializer.serialize(this.getOutgoingRelations()));
+
+        fTag.putInt("Color", this.getColor());
 
         return fTag;
     }
