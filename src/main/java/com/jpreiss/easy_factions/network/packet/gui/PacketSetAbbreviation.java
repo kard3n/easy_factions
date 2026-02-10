@@ -47,27 +47,26 @@ public class PacketSetAbbreviation {
 
             try {
                 factionManager.playerOwnsFaction(player.getUUID());
-                if(!msg.isAlliance){
+                if (!msg.isAlliance) {
                     Faction faction = factionManager.getFactionByPlayer(player.getUUID());
                     boolean factionAllowAbbreviationChange = ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || faction.getAbbreviation() == null);
-                    if(!factionAllowAbbreviationChange){
-                        throw  new RuntimeException("FORBIDDEN");
+                    if (!factionAllowAbbreviationChange) {
+                        throw new RuntimeException("FORBIDDEN");
                     }
 
-                    factionManager.setAbbreviation(faction.getName(), msg.abbreviation, server);
-                }
-                else {
+                    factionManager.setAbbreviation(faction.getName(), msg.abbreviation, player, server);
+                } else {
                     Faction playerFaction = factionManager.getFactionByPlayer(player.getUUID());
                     Alliance alliance = allianceManager.getAllianceByFaction(playerFaction.getName());
 
-                    if (alliance == null){
+                    if (alliance == null) {
                         throw new RuntimeException("You are not in an alliance.");
                     }
                     boolean allianceAllowAbbreviationChange = ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || alliance.getAbbreviation() == null);
-                    if(!allianceAllowAbbreviationChange){
-                        throw  new RuntimeException("FORBIDDEN");
+                    if (!allianceAllowAbbreviationChange) {
+                        throw new RuntimeException("FORBIDDEN");
                     }
-                    allianceManager.setAbbreviation(alliance.getName(), msg.abbreviation, server);
+                    allianceManager.setAbbreviation(alliance.getName(), msg.abbreviation, player, server);
                 }
                 // If successful, re-open/refresh the GUI
                 PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);

@@ -4,10 +4,7 @@ import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
-import com.jpreiss.easy_factions.server.api.events.AllianceCreateEvent;
-import com.jpreiss.easy_factions.server.api.events.AllianceDisbandEvent;
-import com.jpreiss.easy_factions.server.api.events.AllianceJoinEvent;
-import com.jpreiss.easy_factions.server.api.events.AllianceLeaveEvent;
+import com.jpreiss.easy_factions.server.api.events.*;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.nbt.CompoundTag;
@@ -243,12 +240,16 @@ public class AllianceStateManager extends SavedData {
         return Collections.unmodifiableMap(factionAllianceMap);
     }
 
-    public void setAbbreviation(String allianceName, String abbreviation, MinecraftServer server) throws RuntimeException {
+    public void setAbbreviation(String allianceName, String abbreviation, ServerPlayer player, MinecraftServer server) throws RuntimeException {
         if (!alliances.containsKey(allianceName)) throw new RuntimeException("The alliance does not exist.");
-        if(abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength) throw new RuntimeException("The abbreviation is too long.");
-        if(abbreviation.length() < ServerConfig.allianceAbbreviationMinLength) throw new RuntimeException("The abbreviation is too short.");
-        alliances.get(allianceName).setAbbreviation(abbreviation);
+        if (abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength)
+            throw new RuntimeException("The abbreviation is too long.");
+        if (abbreviation.length() < ServerConfig.allianceAbbreviationMinLength)
+            throw new RuntimeException("The abbreviation is too short.");
+        Alliance alliance = alliances.get(allianceName);
+        alliance.setAbbreviation(abbreviation);
         NetworkManager.broadcastAllianceAbbreviationUpdate(allianceName, abbreviation, server);
+        MinecraftForge.EVENT_BUS.post(new AllianceChangeAbbreviationEvent(alliance, player));
         this.setDirty();
     }
 
@@ -286,11 +287,11 @@ public class AllianceStateManager extends SavedData {
      */
     public void setColor(String colorString, ServerPlayer user, MinecraftServer server) throws RuntimeException {
         Alliance alliance = this.getAllianceOrError(user, server);
-        try{
+        try {
             Color color = Color.decode(colorString);
             alliance.setColor(color.getRGB());
-        }
-        catch(NumberFormatException e){
+            MinecraftForge.EVENT_BUS.post(new AllianceChangeColorEvent(alliance, user));
+        } catch (NumberFormatException e) {
             throw new NumberFormatException("Not a valid color!");
         }
 

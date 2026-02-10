@@ -188,7 +188,7 @@ public class AllianceCommands {
                                     try {
                                         AllianceStateManager allianceManager = AllianceStateManager.get(server);
                                         Alliance alliance = allianceManager.getAllianceByFaction(FactionStateManager.get(server).getFactionByPlayer(player.getUUID()).getName());
-                                        allianceManager.setAbbreviation(alliance.getName(), abbreviation, server);
+                                        allianceManager.setAbbreviation(alliance.getName(), abbreviation, player, server);
                                         context.getSource().sendSuccess(() -> Component.literal("Set alliance abbreviation to " + abbreviation), false);
                                     } catch (RuntimeException e) {
                                         context.getSource().sendFailure(Component.literal(e.getMessage()));
@@ -214,7 +214,7 @@ public class AllianceCommands {
                                                 RelationshipStatus status = RelationshipStatus.valueOf(statusStr);
 
                                                 allianceManager.setRelation(targetAlliance, player, status);
-                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetAlliance + " to " + status.name()  + ".\nThe relation between your alliances will be the lowest one between the one set by you and the one set by them."), false);
+                                                context.getSource().sendSuccess(() -> Component.literal("Set relation with " + targetAlliance + " to " + status.name() + ".\nThe relation between your alliances will be the lowest one between the one set by you and the one set by them."), false);
                                             } catch (IllegalArgumentException e) {
                                                 context.getSource().sendFailure(Component.literal("Invalid relationship status: " + statusStr));
                                             } catch (RuntimeException e) {
@@ -290,29 +290,28 @@ public class AllianceCommands {
         FactionStateManager factionManager = FactionStateManager.get(context.getSource().getServer());
         AllianceStateManager stateManager = AllianceStateManager.get(context.getSource().getServer());
 
-        try{
+        try {
             Alliance alliance = stateManager.getAllianceByFaction(factionManager.getFactionByPlayer(Objects.requireNonNull(context.getSource().getPlayer()).getUUID()).getName());
-            if(alliance == null) return builder.buildFuture();
+            if (alliance == null) return builder.buildFuture();
 
-            for (String allianceName: stateManager.getAllianceNames()){
-                if(!allianceName.equals(alliance.getName())){
-                    if(allianceName.contains(" ")){
+            for (String allianceName : stateManager.getAllianceNames()) {
+                if (!allianceName.equals(alliance.getName())) {
+                    if (allianceName.contains(" ")) {
                         builder.suggest("\"" + allianceName + "\"");
-                    }
-                    else{
+                    } else {
                         builder.suggest(allianceName);
                     }
 
                 }
 
             }
+        } catch (NullPointerException ignore) {
         }
-        catch (NullPointerException ignore){}
 
-        return  builder.buildFuture();
+        return builder.buildFuture();
     };
 
-    private static Alliance getOwnedAllianceOrNull(CommandSourceStack source){
+    private static Alliance getOwnedAllianceOrNull(CommandSourceStack source) {
         try {
             MinecraftServer server = source.getServer();
             ServerPlayer player = source.getPlayerOrException();
@@ -330,7 +329,7 @@ public class AllianceCommands {
     /**
      * Returns true if the player executing the command is the owner of a faction in an alliance
      */
-    private static boolean playerIsOwnerAndAllianceMember(CommandSourceStack source){
+    private static boolean playerIsOwnerAndAllianceMember(CommandSourceStack source) {
         try {
             MinecraftServer server = source.getServer();
             ServerPlayer player = source.getPlayerOrException();

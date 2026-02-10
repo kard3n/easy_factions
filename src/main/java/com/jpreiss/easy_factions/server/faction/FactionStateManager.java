@@ -5,10 +5,7 @@ import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
-import com.jpreiss.easy_factions.server.api.events.FactionCreateEvent;
-import com.jpreiss.easy_factions.server.api.events.FactionDisbandEvent;
-import com.jpreiss.easy_factions.server.api.events.FactionJoinEvent;
-import com.jpreiss.easy_factions.server.api.events.FactionLeaveEvent;
+import com.jpreiss.easy_factions.server.api.events.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -330,6 +327,7 @@ public class FactionStateManager extends SavedData {
             Faction faction = getFactionByPlayer(user.getUUID());
             Color color = Color.decode(colorString);
             faction.setColor(color.getRGB());
+            MinecraftForge.EVENT_BUS.post(new FactionChangeColorEvent(faction, user));
         }
         catch(NumberFormatException e){
             throw new NumberFormatException("Not a valid color!");
@@ -421,12 +419,14 @@ public class FactionStateManager extends SavedData {
      * @param factionName  Name of the faction
      * @param abbreviation The abbreviation
      */
-    public void setAbbreviation(String factionName, String abbreviation, MinecraftServer server) throws RuntimeException {
+    public void setAbbreviation(String factionName, String abbreviation, ServerPlayer player,  MinecraftServer server) throws RuntimeException {
         if (!factions.containsKey(factionName)) throw new RuntimeException("The faction does not exist.");
         if(abbreviation.length() > ServerConfig.factionAbbreviationMaxLength) throw new RuntimeException("The abbreviation is too long.");
         if(abbreviation.length() < ServerConfig.factionAbbreviationMinLength) throw new RuntimeException("The abbreviation is too short.");
-        factions.get(factionName).setAbbreviation(abbreviation);
+        Faction faction = factions.get(factionName);
+        faction.setAbbreviation(abbreviation);
         NetworkManager.broadcastFactionAbbreviationUpdate(factionName, abbreviation, server);
+        MinecraftForge.EVENT_BUS.post(new FactionChangeAbbreviationEvent(faction, player));
         this.setDirty();
     }
 

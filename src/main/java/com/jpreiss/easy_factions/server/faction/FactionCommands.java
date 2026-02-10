@@ -265,7 +265,7 @@ public class FactionCommands {
                                     MinecraftServer server = context.getSource().getServer();
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     FactionStateManager factionManager = FactionStateManager.get(server);
-                                    factionManager.setAbbreviation(factionManager.getFactionByPlayer(player.getUUID()).getName(), abbreviation, server);
+                                    factionManager.setAbbreviation(factionManager.getFactionByPlayer(player.getUUID()).getName(), abbreviation, player, server);
                                     context.getSource().sendSuccess(() -> Component.literal("Set faction abbreviation to " + abbreviation), false);
 
                                     return 1;
