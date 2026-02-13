@@ -332,6 +332,7 @@ public class FactionStateManager extends SavedData {
         catch(NumberFormatException e){
             throw new NumberFormatException("Not a valid color!");
         }
+        this.setDirty();
 
     }
 

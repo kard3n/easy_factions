@@ -294,7 +294,7 @@ public class AllianceStateManager extends SavedData {
         } catch (NumberFormatException e) {
             throw new NumberFormatException("Not a valid color!");
         }
-
+        this.setDirty();
     }
 
     private Alliance getAllianceOrError(ServerPlayer player, MinecraftServer server) {
