@@ -18,7 +18,8 @@ public class PacketSyncFactionGuiData {
     private final Map<UUID, String> playerNames; // UUID -> Name for all currently online server players, those invited and those who are members
     private final List<UUID> factionInvites; // UUIDs of all players invited to the player's faction
     private final List<String> playerInvites; // Names of the factions the player is invited to
-    private final Map<String, RelationshipStatus> outgoingRelationships; // The relationship this faction set for others
+    private final Map<String, RelationshipStatus> outgoingFactionRelationships; // The relationship this faction set for others
+    private final Map<String, RelationshipStatus> incomingFactionRelationships; // The relationship others set for this faction
     private final List<String> factionNames; // All known faction names
     private final String allianceName; // All known alliance names
     private final List<String> allianceMembers;
@@ -41,7 +42,8 @@ public class PacketSyncFactionGuiData {
             String factionName, Map<UUID, MemberRank> memberRanks,
             Map<UUID, String> playerNames,
             List<UUID> factionInvites,
-            Map<String, RelationshipStatus> outgoingRelationships,
+            Map<String, RelationshipStatus> outgoingFactionRelationships,
+            Map<String, RelationshipStatus> incomingFactionRelationships,
             List<String> factionNames,
             String allianceName,
             List<String> allianceMembers,
@@ -62,7 +64,8 @@ public class PacketSyncFactionGuiData {
         this.playerNames = playerNames;
         this.factionInvites = factionInvites;
         this.playerInvites = new ArrayList<>();
-        this.outgoingRelationships = outgoingRelationships;
+        this.outgoingFactionRelationships = outgoingFactionRelationships;
+        this.incomingFactionRelationships = incomingFactionRelationships;
         this.factionNames = factionNames;
         this.allianceMembers = allianceMembers;
         this.allianceName = allianceName;
@@ -87,7 +90,8 @@ public class PacketSyncFactionGuiData {
         this.playerNames = new HashMap<>();
         this.factionInvites = new ArrayList<>();
         this.playerInvites = playerInvites;
-        this.outgoingRelationships = new HashMap<>();
+        this.outgoingFactionRelationships = new HashMap<>();
+        this.incomingFactionRelationships = new HashMap<>();
         this.factionNames = new ArrayList<>();
         this.allianceName = null;
         this.allianceMembers = new ArrayList<>();
@@ -112,7 +116,8 @@ public class PacketSyncFactionGuiData {
             Map<UUID, String> playerNames,
             List<String> playerInvites,
             List<UUID> factionInvites,
-            Map<String, RelationshipStatus> outgoingRelationships,
+            Map<String, RelationshipStatus> outgoingFactionRelationships,
+            Map<String, RelationshipStatus> incomingFactionRelationships,
             List<String> factionNames,
             String allianceName,
             List<String> allianceMembers,
@@ -134,7 +139,8 @@ public class PacketSyncFactionGuiData {
         this.playerNames = playerNames;
         this.playerInvites = playerInvites;
         this.factionInvites = factionInvites;
-        this.outgoingRelationships = outgoingRelationships;
+        this.outgoingFactionRelationships = outgoingFactionRelationships;
+        this.incomingFactionRelationships = incomingFactionRelationships;
         this.factionNames = factionNames;
         this.allianceName = allianceName;
         this.allianceMembers = allianceMembers;
@@ -158,7 +164,8 @@ public class PacketSyncFactionGuiData {
         buf.writeMap(msg.playerNames, FriendlyByteBuf::writeUUID, FriendlyByteBuf::writeUtf);
         buf.writeCollection(msg.playerInvites, FriendlyByteBuf::writeUtf);
         buf.writeCollection(msg.factionInvites, FriendlyByteBuf::writeUUID);
-        buf.writeMap(msg.outgoingRelationships, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
+        buf.writeMap(msg.outgoingFactionRelationships, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
+        buf.writeMap(msg.incomingFactionRelationships, FriendlyByteBuf::writeUtf, FriendlyByteBuf::writeEnum);
         buf.writeCollection(msg.factionNames, FriendlyByteBuf::writeUtf);
         buf.writeUtf(msg.allianceName == null ? "" : msg.allianceName);
         buf.writeCollection(msg.allianceMembers, FriendlyByteBuf::writeUtf);
@@ -183,6 +190,7 @@ public class PacketSyncFactionGuiData {
         List<String> playerInvites = buf.readList(FriendlyByteBuf::readUtf);
         List<UUID> factionInvites = buf.readList(FriendlyByteBuf::readUUID);
         Map<String, RelationshipStatus> outgoingRelationships = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
+        Map<String, RelationshipStatus> incomingRelationships = buf.readMap(FriendlyByteBuf::readUtf, b -> b.readEnum(RelationshipStatus.class));
         List<String> factionNames = buf.readList(FriendlyByteBuf::readUtf);
         String allianceName = buf.readUtf();
         if (allianceName.isEmpty()) allianceName = null;
@@ -208,6 +216,7 @@ public class PacketSyncFactionGuiData {
                 playerInvites,
                 factionInvites,
                 outgoingRelationships,
+                incomingRelationships,
                 factionNames,
                 allianceName,
                 allianceMembers,
@@ -249,8 +258,8 @@ public class PacketSyncFactionGuiData {
         return playerInvites;
     }
 
-    public Map<String, RelationshipStatus> getOutgoingRelationships() {
-        return outgoingRelationships;
+    public Map<String, RelationshipStatus> getOutgoingFactionRelationships() {
+        return outgoingFactionRelationships;
     }
 
     public List<String> getFactionNames() {

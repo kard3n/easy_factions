@@ -15,10 +15,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class FactionScreen extends Screen {
     private enum MainTab {FACTION, ALLIANCE, SETTINGS}
@@ -73,6 +70,7 @@ public class FactionScreen extends Screen {
     private final UUID clientPlayerUUID;
     private final List<UUID> factionInvites;
     private final Map<String, RelationshipStatus> outgoingFactionRelations;
+    private final Map<String, RelationshipStatus> incomingFactionRelations;
     private final List<String> factionNames;
     private final String allianceName;
     private final List<String> allianceMembers;
@@ -89,7 +87,6 @@ public class FactionScreen extends Screen {
     private final boolean allianceAbbreviationChangeAllowed;
 
 
-
     public FactionScreen(PacketSyncFactionGuiData data) {
         super(Component.literal("Easy Factions"));
         this.factionName = data.getFactionName();
@@ -98,7 +95,8 @@ public class FactionScreen extends Screen {
         assert Minecraft.getInstance().player != null;
         this.clientPlayerUUID = Minecraft.getInstance().player.getUUID();
         this.factionInvites = data.getFactionInvites();
-        this.outgoingFactionRelations = data.getOutgoingRelationships();
+        this.outgoingFactionRelations = data.getOutgoingFactionRelationships();
+        this.incomingFactionRelations = data.getOutgoingFactionRelationships();
         this.factionNames = data.getFactionNames();
         this.allianceName = data.getAllianceName();
         this.allianceMembers = data.getAllianceMembers();
@@ -254,13 +252,25 @@ public class FactionScreen extends Screen {
             this.factionRelationsList = new ScrollableFactionRelationsList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
             this.factionRelationsList.setLeftPos(this.windowStartX + 10);
             boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
-            for (Map.Entry<String, RelationshipStatus> entry : outgoingFactionRelations.entrySet()) {
-                this.factionRelationsList.addFaction(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
+
+            HashMap<String, RelationshipStatus> factionRelations = new HashMap<>(outgoingFactionRelations);
+
+            for (Map.Entry<String, RelationshipStatus> entry : this.incomingFactionRelations.entrySet()) {
+                if (!factionRelations.containsKey(entry.getKey())) {
+                    factionRelations.put(entry.getKey(), entry.getValue());
+                } else {
+                    factionRelations.put(entry.getKey(), RelationshipStatus.getLowestByPriority(factionRelations.get(entry.getKey()), entry.getValue()));
+                }
             }
             for (String fName : factionNames) {
-                if (!outgoingFactionRelations.containsKey(fName) && !this.factionName.equals(fName)) {
-                    this.factionRelationsList.addFaction(fName, RelationshipStatus.NEUTRAL, playerIsOwnerOrOfficer);
+                if (!factionRelations.containsKey(fName)) {
+                    if(!fName.equals(this.factionName)){
+                        factionRelations.put(fName, RelationshipStatus.NEUTRAL);
+                    }
                 }
+            }
+            for (Map.Entry<String, RelationshipStatus> entry : factionRelations.entrySet()) {
+                this.factionRelationsList.addFaction(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
             }
         } else {
             this.factionRelationsList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
@@ -290,7 +300,7 @@ public class FactionScreen extends Screen {
 
         // Abbreviation Input Box
         boolean allowAbbreviationChange = this.factionAbbreviationChangeAllowed && memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
-        this.factionAbbrBox = new EditBox(this.font, this.contentStartX + this.spacing + 120, this.getContentTopY() + buttonHeight + spacing * 2 , 90, 20, Component.literal(factionAbbreviation));
+        this.factionAbbrBox = new EditBox(this.font, this.contentStartX + this.spacing + 120, this.getContentTopY() + buttonHeight + spacing * 2, 90, 20, Component.literal(factionAbbreviation));
         this.factionAbbrBox.setMaxLength(this.factionAbbreviationMaxLength);
         this.factionAbbrBox.setEditable(allowAbbreviationChange);
         this.factionAbbrBox.setValue(factionAbbreviation);
@@ -399,21 +409,27 @@ public class FactionScreen extends Screen {
             this.allianceRelationsList.setLeftPos(this.windowStartX + 10);
             boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
-            RelationshipStatus incomingRelationship;
-            for (Map.Entry<String, RelationshipStatus> entry : outgoingAllianceRelations.entrySet()) {
-                incomingRelationship = this.incomingAllianceRelations.get(entry.getKey());
-                if (incomingRelationship == null) incomingRelationship = RelationshipStatus.NEUTRAL;
-                this.allianceRelationsList.addAlliance(entry.getKey(), entry.getValue(), incomingRelationship, playerIsOwnerOrOfficer);
-            }
+            HashMap<String, RelationshipStatus> allianceRelations = new HashMap<>(outgoingAllianceRelations);
 
-            for (String currentAllianceName : allianceNames) {
-                if (!outgoingAllianceRelations.containsKey(currentAllianceName) && !this.allianceName.equals(currentAllianceName)) {
-                    incomingRelationship = this.incomingAllianceRelations.get(currentAllianceName);
-                    if (incomingRelationship == null) incomingRelationship = RelationshipStatus.NEUTRAL;
-
-                    this.allianceRelationsList.addAlliance(currentAllianceName, RelationshipStatus.NEUTRAL, incomingRelationship, playerIsOwnerOrOfficer);
+            for (Map.Entry<String, RelationshipStatus> entry : this.incomingAllianceRelations.entrySet()) {
+                if (!allianceRelations.containsKey(entry.getKey())) {
+                    allianceRelations.put(entry.getKey(), entry.getValue());
+                } else {
+                    allianceRelations.put(entry.getKey(), RelationshipStatus.getLowestByPriority(allianceRelations.get(entry.getKey()), entry.getValue()));
                 }
             }
+            for (String aName : allianceNames) {
+                if (!allianceRelations.containsKey(aName)) {
+                    allianceRelations.put(aName, RelationshipStatus.NEUTRAL);
+                }
+            }
+
+            for (Map.Entry<String, RelationshipStatus> entry : allianceRelations.entrySet()) {
+                if(!entry.getKey().equals(this.allianceName)){
+                    this.allianceRelationsList.addAlliance(entry.getKey(), this.outgoingAllianceRelations.getOrDefault(entry.getKey(), RelationshipStatus.NEUTRAL), entry.getValue(), playerIsOwnerOrOfficer);
+                }
+            }
+
         } else {
             this.allianceRelationsList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
             this.allianceRelationsList.setLeftPos(this.windowStartX + 10);

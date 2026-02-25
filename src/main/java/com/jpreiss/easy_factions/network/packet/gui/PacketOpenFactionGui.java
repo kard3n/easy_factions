@@ -80,6 +80,7 @@ public class PacketOpenFactionGui {
                 }
 
                 Map<String, RelationshipStatus> outgoingRelationships = faction.getOutgoingRelations();
+                Map<String, RelationshipStatus> incomingRelationships = faction.getIncomingRelations();
                 List<String> factionNames = factionManager.getAllFactionNames().stream().toList();
 
                 Alliance alliance = allianceManager.getAllianceByFaction(faction.getName());
@@ -108,6 +109,7 @@ public class PacketOpenFactionGui {
                         playerNames,
                         invitedUsers,
                         outgoingRelationships,
+                        incomingRelationships,
                         factionNames,
                         allianceName,
                         allianceMembers,

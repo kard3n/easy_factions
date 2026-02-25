@@ -1,10 +1,8 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.client.data_store.ClientRelationshipData;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceSetRelationAction;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionSetRelationAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -29,8 +27,8 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
         this.setRenderTopAndBottom(false);
     }
 
-    public void addAlliance(String allianceName, RelationshipStatus outgoingStatus, RelationshipStatus incomingStatus, boolean playerCanEdit) {
-        this.addEntry(new RelationEntry(allianceName, outgoingStatus, incomingStatus, playerCanEdit));
+    public void addAlliance(String allianceName, RelationshipStatus outgoingStatus, RelationshipStatus combinedStatus, boolean playerCanEdit) {
+        this.addEntry(new RelationEntry(allianceName, outgoingStatus, combinedStatus, playerCanEdit));
     }
 
     @Override
@@ -46,8 +44,7 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
     // Entry class
     public static class RelationEntry extends Entry<RelationEntry> {
         private final String allianceName;
-        private final RelationshipStatus outgoingAllianceStatus;
-        private final RelationshipStatus incomingAllianceStatus;
+        private final RelationshipStatus combinedStatus;
         private final Button buttonFriendly;
         private final Button buttonNeutral;
         private final Button buttonHostile;
@@ -57,10 +54,9 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
          * @param outgoingAllianceStatus Status this alliance has set the other to
          * @param playerCanEdit If the player seeing this should be able to change the relationship
          */
-        public RelationEntry(String allianceName, RelationshipStatus outgoingAllianceStatus, RelationshipStatus incomingAllianceStatus, boolean playerCanEdit) {
+        public RelationEntry(String allianceName, RelationshipStatus outgoingAllianceStatus, RelationshipStatus combinedStatus, boolean playerCanEdit) {
             this.allianceName = allianceName;
-            this.outgoingAllianceStatus = outgoingAllianceStatus;
-            this.incomingAllianceStatus = incomingAllianceStatus;
+            this.combinedStatus = combinedStatus;
 
             this.buttonFriendly = Button.builder(Component.literal("Friendly"), (btn) -> {
                 NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, FRIENDLY));
@@ -86,22 +82,13 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
             // name
             guiGraphics.drawString(mc.font, this.allianceName, left + 2, top + 8, 0xFFFFFF);
 
-            // relationship
-            RelationshipStatus shownStatus = this.outgoingAllianceStatus;
-            if (this.incomingAllianceStatus == RelationshipStatus.NEUTRAL && this.outgoingAllianceStatus != RelationshipStatus.HOSTILE) {
-                shownStatus = RelationshipStatus.NEUTRAL;
-            }
-            else if (incomingAllianceStatus == RelationshipStatus.HOSTILE) {
-                shownStatus = RelationshipStatus.HOSTILE;
-            }
-
             Color statusColor;
-            switch (shownStatus) {
+            switch (this.combinedStatus) {
                 case FRIENDLY -> statusColor = Color.GREEN;
                 case HOSTILE -> statusColor = Color.RED;
                 default -> statusColor = Color.BLUE;
             }
-            guiGraphics.drawString(mc.font, shownStatus.toString(), left + 80, top + 8, statusColor.getRGB());
+            guiGraphics.drawString(mc.font, this.combinedStatus.toString(), left + 80, top + 8, statusColor.getRGB());
 
             this.buttonFriendly.setX(left + 130);
             this.buttonFriendly.setY(top + 2);

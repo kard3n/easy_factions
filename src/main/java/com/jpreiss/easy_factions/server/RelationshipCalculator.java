@@ -11,11 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RelationshipCalculator {
-    private static final Map<RelationshipStatus, Integer> STATUS_PRIORITIES = Map.of(
-            RelationshipStatus.FRIENDLY, 0,
-            RelationshipStatus.NEUTRAL, 1,
-            RelationshipStatus.HOSTILE, 2
-    );
 
     /**
      * Calculates the relationships of a faction with other factions.
@@ -47,7 +42,7 @@ public class RelationshipCalculator {
                 RelationshipStatus incoming = alliance.getOutgoingRelations().getOrDefault(otherAlliance.getName(), RelationshipStatus.NEUTRAL);
                 RelationshipStatus outgoing = alliance.getIncomingRelations().getOrDefault(otherAlliance.getName(), RelationshipStatus.NEUTRAL);
 
-                maxRelation = getHigherRelation(maxRelation, getHigherRelation(incoming, outgoing));
+                maxRelation = RelationshipStatus.getLowestByPriority(maxRelation, RelationshipStatus.getLowestByPriority(incoming, outgoing));
             }
 
             // Check Faction-to-Faction Relations
@@ -57,11 +52,11 @@ public class RelationshipCalculator {
                     Faction memberFaction = factionStateManager.getFactionByName(member);
 
                     if (memberFaction.getOutgoingRelations().containsKey(otherFactionName)) {
-                        maxRelation = getHigherRelation(maxRelation, memberFaction.getOutgoingRelations().get(otherFactionName));
+                        maxRelation = RelationshipStatus.getLowestByPriority(maxRelation, memberFaction.getOutgoingRelations().get(otherFactionName));
                     }
 
                     if (memberFaction.getIncomingRelations().containsKey(otherFactionName)) {
-                        maxRelation = getHigherRelation(maxRelation, memberFaction.getIncomingRelations().get(otherFactionName));
+                        maxRelation = RelationshipStatus.getLowestByPriority(maxRelation, memberFaction.getIncomingRelations().get(otherFactionName));
                     }
 
                     if (maxRelation == RelationshipStatus.HOSTILE) break;
@@ -70,7 +65,7 @@ public class RelationshipCalculator {
                 // Solo Faction Logic
                 RelationshipStatus incoming = faction.getOutgoingRelations().getOrDefault(otherFactionName, RelationshipStatus.NEUTRAL);
                 RelationshipStatus outgoing = faction.getIncomingRelations().getOrDefault(otherFactionName, RelationshipStatus.NEUTRAL);
-                maxRelation = getHigherRelation(maxRelation, getHigherRelation(incoming, outgoing));
+                maxRelation = RelationshipStatus.getLowestByPriority(maxRelation, RelationshipStatus.getLowestByPriority(incoming, outgoing));
             }
 
             if (maxRelation != RelationshipStatus.NEUTRAL) {
@@ -78,9 +73,5 @@ public class RelationshipCalculator {
             }
         }
         return relationships;
-    }
-
-    private static RelationshipStatus getHigherRelation(RelationshipStatus status1, RelationshipStatus status2) {
-        return STATUS_PRIORITIES.get(status1) > STATUS_PRIORITIES.get(status2) ? status1 : status2;
     }
 }
