@@ -1,5 +1,6 @@
-package com.jpreiss.easy_factions.server;
+package com.jpreiss.easy_factions.server.event_handlers;
 
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
@@ -16,7 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber
-public class EventHandler {
+public class FactionEventHandler {
 
     /**
      * Prevents damage when friendly fire is enabled

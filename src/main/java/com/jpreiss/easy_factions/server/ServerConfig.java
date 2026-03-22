@@ -1,10 +1,16 @@
 package com.jpreiss.easy_factions.server;
 
 import com.jpreiss.easy_factions.EasyFactions;
+import com.jpreiss.easy_factions.server.claims.ChunkInteractionType;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Mod.EventBusSubscriber(modid = EasyFactions.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ServerConfig {
@@ -47,6 +53,73 @@ public class ServerConfig {
             .comment("Allow factions to change their abbreviation")
             .define("allowAbbreviationChange", false);
 
+    private static final ForgeConfigSpec.IntValue COST_PER_CHUNK = BUILDER
+            .comment("Cost in points per chunk")
+            .defineInRange("chunkCost", 1, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue CORE_CHUNK_AMOUNT = BUILDER
+            .comment("How many core chunks players should be allowed to own.")
+            .defineInRange("coreChunks", 9, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.BooleanValue REFUND_COST_UNCLAIM = BUILDER
+            .comment("If set to true, points are refunded when a chunk is unclaimed or set as an admin chunk")
+            .define("refundCostUnclaim", false);
+
+    private static final ForgeConfigSpec.IntValue POINTS_PER_KILL = BUILDER
+            .comment("Points gained against a faction per kill")
+            .defineInRange("pointsPerKill", 1, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue POINT_GENERATION_INTERVAL = BUILDER
+            .comment("The interval in seconds in which factions are given points to be used for claiming chunks")
+            .comment("After every interval, a point is given for every online member of the faction.")
+            .defineInRange("pointGenerationInterval", 600, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue POINT_GENERATION_AMOUNT = BUILDER
+            .comment("How many points are given per interval")
+            .defineInRange("pointGenerationAmount", 1, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue ADMIN_CLAIM_COLOR = BUILDER
+            .comment("The color of admin claims on the map")
+            .defineInRange("adminColor", 0xFF00FF, 0, 0xFFFFFF);
+
+    private static final ForgeConfigSpec.IntValue CORE_CLAIM_COLOR = BUILDER
+            .comment("The color of core claims on the map")
+            .defineInRange("coreColor", 0xFFFFFF, 0, 0xFFFFFF);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> ADMIN_CLAIM_RESTRICTIONS = BUILDER
+            .comment("The restrictions set for non-members in admin-claimed chunks")
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
+            .defineListAllowEmpty("adminClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_RESTRICTIONS = BUILDER
+            .comment("The restrictions set for non-members in core-claimed chunks")
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
+            .defineListAllowEmpty("coreClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FACTION_CLAIM_RESTRICTIONS = BUILDER
+            .comment("The restrictions set for non-members in faction-claimed chunks")
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
+            .defineListAllowEmpty("factionClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_DIMENSIONS = BUILDER
+            .comment("The dimensions allowed for core (player) claims.")
+            .defineListAllowEmpty("coreClaimDimensions", List.of("minecraft:overworld"), o -> o instanceof String);
+
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FACTION_CLAIM_DIMENSIONS = BUILDER
+            .comment("The dimensions allowed for faction claims.")
+            .defineListAllowEmpty("factionClaimDimensions", List.of("minecraft:overworld"), o -> o instanceof String);
+
+    private static boolean validateRestriction(Object object) {
+        if (object instanceof String) {
+            try {
+                ChunkInteractionType.valueOf((String) object);
+                return true;
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+        return false;
+    }
 
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();
@@ -60,6 +133,19 @@ public class ServerConfig {
     public static int allianceAbbreviationMaxLength;
     public static boolean enableAbbreviation;
     public static boolean allowAbbreviationChange;
+    public static int chunkCost;
+    public static int coreChunkAmount;
+    public static boolean refundCostUnclaim;
+    public static int pointsPerKill;
+    public static int pointGenerationInterval;
+    public static int pointGenerationAmount;
+    public static int adminClaimColor;
+    public static int coreClaimColor;
+    public static Set<ChunkInteractionType> adminClaimRestrictions;
+    public static Set<ChunkInteractionType> coreClaimRestrictions;
+    public static Set<ChunkInteractionType> factionClaimRestrictions;
+    public static Set<String> coreClaimDimensions;
+    public static Set<String> factionClaimDimensions;
 
 
     @SubscribeEvent
@@ -73,5 +159,18 @@ public class ServerConfig {
         allianceAbbreviationMaxLength = ALLIANCE_ABBREVIATION_MAX_LENGTH.get();
         enableAbbreviation = ENABLE_ABBREVIATION.get();
         allowAbbreviationChange = ALLOW_ABBREVIATION_CHANGE.get();
+        chunkCost = COST_PER_CHUNK.get();
+        coreChunkAmount = CORE_CHUNK_AMOUNT.get();
+        refundCostUnclaim = REFUND_COST_UNCLAIM.get();
+        pointsPerKill = POINTS_PER_KILL.get();
+        pointGenerationInterval = POINT_GENERATION_INTERVAL.get();
+        pointGenerationAmount = POINT_GENERATION_AMOUNT.get();
+        adminClaimColor = ADMIN_CLAIM_COLOR.get();
+        coreClaimColor = CORE_CLAIM_COLOR.get();
+        adminClaimRestrictions = ADMIN_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
+        coreClaimRestrictions = CORE_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
+        factionClaimRestrictions = FACTION_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
+        coreClaimDimensions = new HashSet<>(CORE_CLAIM_DIMENSIONS.get());
+        factionClaimDimensions = new HashSet<>(FACTION_CLAIM_DIMENSIONS.get());
     }
 }

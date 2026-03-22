@@ -1,4 +1,4 @@
-package com.jpreiss.easy_factions.network.packet.data_sync;
+package com.jpreiss.easy_factions.network.packet.factions_alliances;
 
 import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;

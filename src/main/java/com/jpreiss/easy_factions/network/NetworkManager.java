@@ -1,13 +1,19 @@
 package com.jpreiss.easy_factions.network;
 
-import com.jpreiss.easy_factions.network.packet.data_sync.*;
+import com.jpreiss.easy_factions.network.packet.claims.PacketChunkClaim;
+import com.jpreiss.easy_factions.network.packet.claims.PacketChunkUnclaim;
+import com.jpreiss.easy_factions.network.packet.factions_alliances.*;
 import com.jpreiss.easy_factions.server.RelationshipCalculator;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 
 import java.util.*;
 
@@ -36,6 +42,29 @@ public class NetworkManager {
             removeSinglePlayerInfo(newPlayer.getUUID(), server);
         }
 
+    }
+
+    /**
+     * Notify all clients of the chunk claim
+     */
+    public static void notifyChunkClaim(HashMap<ResourceLocation, HashMap<Long, Integer>> claims, MinecraftServer server) {
+        NetworkHandler.sendToAllPresent(new PacketChunkClaim(claims), server);
+    }
+
+    /**
+     * Notify all clients of the chunk unclaim
+     */
+    public static void notifyChunkUnclaim(Map<ResourceLocation, List<Long>> chunks, MinecraftServer server) {
+        NetworkHandler.sendToAllPresent(new PacketChunkUnclaim(chunks), server);
+    }
+
+    public static void sendClaimUpdate(ResourceKey<Level> dim, List<ChunkPos> chunks, int color, MinecraftServer server) {
+
+        HashMap<ResourceLocation, HashMap<Long, Integer>> claimUpdate = new HashMap<>();
+        HashMap<Long, Integer> claims = new HashMap<>();
+        chunks.forEach(pos -> claims.put(pos.toLong(), color));
+        claimUpdate.put(dim.location(), claims);
+        NetworkManager.notifyChunkClaim(claimUpdate, server);
     }
 
     public static void removeSinglePlayerInfo(UUID playerUUID, MinecraftServer server) {

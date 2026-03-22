@@ -1,7 +1,9 @@
 package com.jpreiss.easy_factions.network;
 
 import com.jpreiss.easy_factions.EasyFactions;
-import com.jpreiss.easy_factions.network.packet.data_sync.*;
+import com.jpreiss.easy_factions.network.packet.claims.PacketChunkClaim;
+import com.jpreiss.easy_factions.network.packet.claims.PacketChunkUnclaim;
+import com.jpreiss.easy_factions.network.packet.factions_alliances.*;
 import com.jpreiss.easy_factions.network.packet.gui.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -42,6 +44,8 @@ public class NetworkHandler {
         CHANNEL.registerMessage(id++, PacketOpenErrorPopup.class, PacketOpenErrorPopup::encode, PacketOpenErrorPopup::decode, PacketOpenErrorPopup::handle);
         CHANNEL.registerMessage(id++, PacketSetAbbreviation.class, PacketSetAbbreviation::encode, PacketSetAbbreviation::decode, PacketSetAbbreviation::handle);
         CHANNEL.registerMessage(id++, PacketSetColor.class, PacketSetColor::encode, PacketSetColor::decode, PacketSetColor::handle);
+        CHANNEL.registerMessage(id++, PacketChunkClaim.class, PacketChunkClaim::encode, PacketChunkClaim::decode, PacketChunkClaim::handle);
+        CHANNEL.registerMessage(id++, PacketChunkUnclaim.class, PacketChunkUnclaim::encode, PacketChunkUnclaim::decode, PacketChunkUnclaim::handle);
     }
 
     /**

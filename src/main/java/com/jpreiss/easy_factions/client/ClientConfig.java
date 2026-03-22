@@ -20,6 +20,18 @@ public class ClientConfig
             .comment("Show the alliance abbreviation (if available) instead of the name in the tag above player heads.")
             .define("showAllianceAbbreviation", true);
 
+    private static final ForgeConfigSpec.DoubleValue CHUNK_BORDER_WIDTH = BUILDER
+            .comment("The thickness of the stroke around claimed chunks")
+            .defineInRange("chunkBorderWidth", 1.5, 0.0, 2.0);
+
+    private static final ForgeConfigSpec.DoubleValue CHUNK_BORDER_OPACITY = BUILDER
+            .comment("The opacity of the stroke around claimed chunks")
+            .defineInRange("chunkBorderOpacity", 0.0, 0.0, 1.0);
+
+    private static final ForgeConfigSpec.DoubleValue CHUNK_OVERLAY_OPACITY = BUILDER
+            .comment("The opacity of the color above claimed chunks")
+            .defineInRange("chunkOverlayOpacity", 0.25, 0.0, 1.0);
+
 
 
 
@@ -27,6 +39,9 @@ public class ClientConfig
 
     public static boolean showFactionAbbreviation;
     public static boolean showAllianceAbbreviation;
+    public static float chunkBorderWidth;
+    public static float chunkBorderOpacity;
+    public static float chunkOverlayOpacity;
 
 
     @SubscribeEvent
@@ -34,6 +49,9 @@ public class ClientConfig
     {
         showFactionAbbreviation = SHOW_FACTION_ABBREVIATION.get();
         showAllianceAbbreviation = SHOW_ALLIANCE_ABBREVIATION.get();
+        chunkBorderWidth = CHUNK_BORDER_WIDTH.get().floatValue();
+        chunkBorderOpacity = CHUNK_BORDER_OPACITY.get().floatValue();
+        chunkOverlayOpacity = CHUNK_OVERLAY_OPACITY.get().floatValue();
     }
 
     public static void setShowFactionAbbreviation(boolean value) {
