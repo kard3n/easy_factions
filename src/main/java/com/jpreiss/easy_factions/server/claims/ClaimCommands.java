@@ -17,7 +17,7 @@ import net.minecraft.world.level.ChunkPos;
 
 import java.util.UUID;
 
-public class TerritoryCommands {
+public class ClaimCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("claim")
                 // Create

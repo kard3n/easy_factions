@@ -3,6 +3,7 @@ package com.jpreiss.easy_factions;
 import com.jpreiss.easy_factions.client.ClientConfig;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceCommands;
+import com.jpreiss.easy_factions.server.claims.ClaimCommands;
 import com.jpreiss.easy_factions.server.faction.FactionCommands;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import net.minecraftforge.api.distmarker.Dist;
@@ -70,6 +71,7 @@ public class EasyFactions
     public void onRegisterCommands(RegisterCommandsEvent event) {
         FactionCommands.register(event.getDispatcher());
         AllianceCommands.register(event.getDispatcher());
+        ClaimCommands.register(event.getDispatcher());
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call
