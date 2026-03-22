@@ -32,6 +32,12 @@ public class ClientConfig
             .comment("The opacity of the color above claimed chunks")
             .defineInRange("chunkOverlayOpacity", 0.25, 0.0, 1.0);
 
+    private static final ForgeConfigSpec.IntValue CLAIM_MERGE_GRID_SIZE = BUILDER
+            .comment("The grid size (in chunks) used to split massive claims on the map.",
+                    "Lower values (e.g. 16) prevent large claims from disappearing on the minimap.",
+                    "Higher values (e.g. 64) increase performance.")
+            .defineInRange("claimMergeGridSize", 32, 1, 256);
+
 
 
 
@@ -42,6 +48,7 @@ public class ClientConfig
     public static float chunkBorderWidth;
     public static float chunkBorderOpacity;
     public static float chunkOverlayOpacity;
+    public static int claimMergeGridSize;
 
 
     @SubscribeEvent
@@ -52,6 +59,7 @@ public class ClientConfig
         chunkBorderWidth = CHUNK_BORDER_WIDTH.get().floatValue();
         chunkBorderOpacity = CHUNK_BORDER_OPACITY.get().floatValue();
         chunkOverlayOpacity = CHUNK_OVERLAY_OPACITY.get().floatValue();
+        claimMergeGridSize = CLAIM_MERGE_GRID_SIZE.get();
     }
 
     public static void setShowFactionAbbreviation(boolean value) {

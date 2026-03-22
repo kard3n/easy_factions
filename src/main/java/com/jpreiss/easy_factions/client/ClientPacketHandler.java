@@ -9,6 +9,7 @@ import com.jpreiss.easy_factions.network.packet.claims.PacketChunkClaim;
 import com.jpreiss.easy_factions.network.packet.claims.PacketChunkUnclaim;
 import com.jpreiss.easy_factions.network.packet.gui.PacketOpenErrorPopup;
 import com.jpreiss.easy_factions.network.packet.gui.PacketSyncFactionGuiData;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -34,17 +35,19 @@ public class ClientPacketHandler {
      */
     public static void handleClaimChunk(PacketChunkClaim msg) {
         ClientClaimCache.addClaims(msg.getChunks());
-        msg.getChunks().forEach((dimLoc, chunks) -> {
+        // Tell JourneyMap to recalculate the map for the affected dimensions
+        msg.getChunks().keySet().forEach(dimLoc -> {
             ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, dimLoc);
-            chunks.forEach((chunk, color) -> JourneyMapCompat.highlightChunk(dim, new ChunkPos(chunk), color));
+            JourneyMapCompat.rebuildDimension(dim);
         });
     }
 
     public static void handleUnclaimChunk(PacketChunkUnclaim msg) {
         ClientClaimCache.removeClaims(msg.getChunks());
-        msg.getChunks().forEach((dimLoc, chunks) -> {
+        // Tell JourneyMap to recalculate the map for the affected dimensions
+        msg.getChunks().keySet().forEach(dimLoc -> {
             ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, dimLoc);
-            chunks.forEach(chunk -> JourneyMapCompat.removeChunkHighlight(dim, new ChunkPos(chunk)));
+            JourneyMapCompat.rebuildDimension(dim);
         });
     }
 }
