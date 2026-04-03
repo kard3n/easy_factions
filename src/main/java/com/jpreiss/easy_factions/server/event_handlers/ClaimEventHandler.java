@@ -1,8 +1,7 @@
 package com.jpreiss.easy_factions.server.event_handlers;
 
 import com.jpreiss.easy_factions.EasyFactions;
-import com.jpreiss.easy_factions.network.NetworkHandler;
-import com.jpreiss.easy_factions.network.packet.claims.PacketChunkClaim;
+import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
@@ -46,7 +45,7 @@ public class ClaimEventHandler {
                 }
                 claims.put(entry.getKey().location(), currentDimClaims);
             }
-            NetworkHandler.sendToPlayer(new PacketChunkClaim(claims), player);
+            NetworkManager.sendClaimsToPlayer(claims, player);
         }
     }
 

@@ -4,6 +4,7 @@ import com.jpreiss.easy_factions.network.packet.claims.PacketChunkClaim;
 import com.jpreiss.easy_factions.network.packet.claims.PacketChunkUnclaim;
 import com.jpreiss.easy_factions.network.packet.factions_alliances.*;
 import com.jpreiss.easy_factions.server.RelationshipCalculator;
+import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
@@ -47,15 +48,26 @@ public class NetworkManager {
     /**
      * Notify all clients of the chunk claim
      */
-    public static void notifyChunkClaim(HashMap<ResourceLocation, HashMap<Long, Integer>> claims, MinecraftServer server) {
-        NetworkHandler.sendToAllPresent(new PacketChunkClaim(claims), server);
+    public static void notifyChunkClaim(Map<ResourceLocation, HashMap<Long, Integer>> claims, MinecraftServer server) {
+        for (Map<ResourceLocation, HashMap<Long, Integer>> partition : partitionClaims(claims)) {
+            NetworkHandler.sendToAllPresent(new PacketChunkClaim(partition), server);
+        }
     }
 
     /**
      * Notify all clients of the chunk unclaim
      */
     public static void notifyChunkUnclaim(Map<ResourceLocation, List<Long>> chunks, MinecraftServer server) {
-        NetworkHandler.sendToAllPresent(new PacketChunkUnclaim(chunks), server);
+        for (Map<ResourceLocation, List<Long>> partition : partitionUnclaims(chunks)) {
+            NetworkHandler.sendToAllPresent(new PacketChunkUnclaim(partition), server);
+        }
+    }
+
+    public static void sendClaimsToPlayer(Map<ResourceLocation, HashMap<Long, Integer>> claims, ServerPlayer player) {
+        if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
+        for (Map<ResourceLocation, HashMap<Long, Integer>> partition : partitionClaims(claims)) {
+            NetworkHandler.sendToPlayer(new PacketChunkClaim(partition), player);
+        }
     }
 
     public static void sendClaimUpdate(ResourceKey<Level> dim, List<ChunkPos> chunks, int color, MinecraftServer server) {
@@ -273,4 +285,63 @@ public class NetworkManager {
         return new PacketSyncFactionAlliance(playerFactions, factionAlliances, factionAbbreviations, allianceAbbreviations);
     }
 
+    /**
+     * Splits a large chunk claim map into multiple smaller maps to respect packet limits
+     */
+    private static List<Map<ResourceLocation, HashMap<Long, Integer>>> partitionClaims(Map<ResourceLocation, HashMap<Long, Integer>> claims) {
+        List<Map<ResourceLocation, HashMap<Long, Integer>>> partitions = new ArrayList<>();
+        if (claims.isEmpty()) {
+            partitions.add(new HashMap<>());
+            return partitions;
+        }
+
+        Map<ResourceLocation, HashMap<Long, Integer>> currentPartition = new HashMap<>();
+        int currentSize = 0;
+
+        for (Map.Entry<ResourceLocation, HashMap<Long, Integer>> entry : claims.entrySet()) {
+            ResourceLocation dim = entry.getKey();
+            for (Map.Entry<Long, Integer> chunkEntry : entry.getValue().entrySet()) {
+                currentPartition.computeIfAbsent(dim, k -> new HashMap<>()).put(chunkEntry.getKey(), chunkEntry.getValue());
+                currentSize++;
+
+                if (currentSize >= ServerConfig.maxChunksPerPacket) {
+                    partitions.add(currentPartition);
+                    currentPartition = new HashMap<>();
+                    currentSize = 0;
+                }
+            }
+        }
+        if (currentSize > 0) partitions.add(currentPartition);
+        return partitions;
+    }
+
+    /**
+     * Splits a large chunk unclaim map into multiple smaller maps to respect packet limits
+     */
+    private static List<Map<ResourceLocation, List<Long>>> partitionUnclaims(Map<ResourceLocation, List<Long>> unclaims) {
+        List<Map<ResourceLocation, List<Long>>> partitions = new ArrayList<>();
+        if (unclaims.isEmpty()) {
+            partitions.add(new HashMap<>());
+            return partitions;
+        }
+
+        Map<ResourceLocation, List<Long>> currentPartition = new HashMap<>();
+        int currentSize = 0;
+
+        for (Map.Entry<ResourceLocation, List<Long>> entry : unclaims.entrySet()) {
+            ResourceLocation dim = entry.getKey();
+            for (Long chunkLong : entry.getValue()) {
+                currentPartition.computeIfAbsent(dim, k -> new ArrayList<>()).add(chunkLong);
+                currentSize++;
+
+                if (currentSize >= ServerConfig.maxChunksPerPacket) {
+                    partitions.add(currentPartition);
+                    currentPartition = new HashMap<>();
+                    currentSize = 0;
+                }
+            }
+        }
+        if (currentSize > 0) partitions.add(currentPartition);
+        return partitions;
+    }
 }

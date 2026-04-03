@@ -109,6 +109,11 @@ public class ServerConfig {
             .comment("The dimensions allowed for faction claims.")
             .defineListAllowEmpty("factionClaimDimensions", List.of("minecraft:overworld"), o -> o instanceof String);
 
+    private static final ForgeConfigSpec.IntValue MAX_CHUNKS_PER_PACKET = BUILDER
+            .comment("How many chunks should be sent per claim update packet.")
+            .comment("Set to a higher amount if mods such as XLPackets are installed.")
+            .defineInRange("maxChunksPerPacket", 1000, 10, Integer.MAX_VALUE);
+
     private static boolean validateRestriction(Object object) {
         if (object instanceof String) {
             try {
@@ -146,6 +151,7 @@ public class ServerConfig {
     public static Set<ChunkInteractionType> factionClaimRestrictions;
     public static Set<String> coreClaimDimensions;
     public static Set<String> factionClaimDimensions;
+    public static int maxChunksPerPacket;
 
 
     @SubscribeEvent
@@ -172,5 +178,6 @@ public class ServerConfig {
         factionClaimRestrictions = FACTION_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
         coreClaimDimensions = new HashSet<>(CORE_CLAIM_DIMENSIONS.get());
         factionClaimDimensions = new HashSet<>(FACTION_CLAIM_DIMENSIONS.get());
+        maxChunksPerPacket = MAX_CHUNKS_PER_PACKET.get();
     }
 }
