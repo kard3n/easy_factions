@@ -89,17 +89,17 @@ public class ServerConfig {
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> ADMIN_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in admin-claimed chunks")
             .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
-            .defineListAllowEmpty("adminClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+            .defineListAllowEmpty("adminClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in core-claimed chunks")
             .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
-            .defineListAllowEmpty("coreClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+            .defineListAllowEmpty("coreClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FACTION_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in faction-claimed chunks")
             .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, INTERACT_BLOCK, RIGHT_CLICK_ITEM")
-            .defineListAllowEmpty("factionClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK", "RIGHT_CLICK_ITEM"), ServerConfig::validateRestriction);
+            .defineListAllowEmpty("factionClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "INTERACT_BLOCK"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_DIMENSIONS = BUILDER
             .comment("The dimensions allowed for core (player) claims.")
