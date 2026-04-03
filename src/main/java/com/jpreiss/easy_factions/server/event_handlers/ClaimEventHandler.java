@@ -99,7 +99,7 @@ public class ClaimEventHandler {
         Set<Long> victimFactionChunks = victimLeaderCoreChunksMap.get(dimension);
         if (victimFactionChunks == null || victimFactionChunks.isEmpty()) return;
 
-        //
+        // Remove chunks from the victim faction
         while (currentPoints >= chunkCost && !victimFactionChunks.isEmpty()) {
             long chunkToRemove = getChunkToRemove(victimFactionChunks, killerLeaderCoreChunks);
 
@@ -107,6 +107,8 @@ public class ClaimEventHandler {
                 ChunkPos pos = new ChunkPos(chunkToRemove);
                 claimManager.unclaimChunk(dimension, pos);
                 claimManager.reduceKillPoints(killerFaction.getName(), victimFaction.getName(), chunkCost);
+                // Give points to the killing faction
+                claimManager.addPoints(killerFaction.getName(), ServerConfig.pointsPerStolenChunk);
                 currentPoints -= chunkCost;
             } else {
                 break;

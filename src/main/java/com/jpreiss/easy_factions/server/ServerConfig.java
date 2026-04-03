@@ -66,8 +66,13 @@ public class ServerConfig {
             .define("refundCostUnclaim", false);
 
     private static final ForgeConfigSpec.IntValue POINTS_PER_KILL = BUILDER
-            .comment("Points gained against a faction per kill")
+            .comment("Points gained against a faction per kill.")
+            .comment("To unclaim one chunk, chunkCost points are used and pointsPerStolenChunk are giving to the killing faction.")
             .defineInRange("pointsPerKill", 1, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue POINTS_PER_STOLEN_CHUNK = BUILDER
+            .comment("How many claim points are given to a faction for taking a chunk from another faction")
+            .defineInRange("pointsPerStolenChunk", 1, 0, Integer.MAX_VALUE);
 
     private static final ForgeConfigSpec.IntValue POINT_GENERATION_INTERVAL = BUILDER
             .comment("The interval in seconds in which factions are given points to be used for claiming chunks")
@@ -142,6 +147,7 @@ public class ServerConfig {
     public static int coreChunkAmount;
     public static boolean refundCostUnclaim;
     public static int pointsPerKill;
+    public static int pointsPerStolenChunk;
     public static int pointGenerationInterval;
     public static int pointGenerationAmount;
     public static int adminClaimColor;
@@ -169,6 +175,7 @@ public class ServerConfig {
         coreChunkAmount = CORE_CHUNK_AMOUNT.get();
         refundCostUnclaim = REFUND_COST_UNCLAIM.get();
         pointsPerKill = POINTS_PER_KILL.get();
+        pointsPerStolenChunk = POINTS_PER_STOLEN_CHUNK.get();
         pointGenerationInterval = POINT_GENERATION_INTERVAL.get();
         pointGenerationAmount = POINT_GENERATION_AMOUNT.get();
         adminClaimColor = ADMIN_CLAIM_COLOR.get();
