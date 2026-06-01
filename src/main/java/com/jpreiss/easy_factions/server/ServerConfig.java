@@ -114,6 +114,15 @@ public class ServerConfig {
             .comment("The dimensions allowed for faction claims.")
             .defineListAllowEmpty("factionClaimDimensions", List.of("minecraft:overworld"), o -> o instanceof String);
 
+    private static final ForgeConfigSpec.IntValue FACTION_BASE_CLAIM_LIMIT = BUILDER
+            .comment("The base amount of chunks a faction can claim")
+            .defineInRange("factionBaseClaimLimit", 100, 0, Integer.MAX_VALUE);
+
+    private static final ForgeConfigSpec.IntValue FACTION_ADDITIONAL_CLAIM_LIMIT_PER_MEMBER = BUILDER
+            .comment("The additional amount of chunks a faction can claim per member.")
+            .comment("The final limit of claimable chunks per faction is (factionBaseClaimLimit + factionAdditionalClaimLimitPerMember * factionMembers)")
+            .defineInRange("factionAdditionalClaimLimitPerMember", 100, 0, Integer.MAX_VALUE);
+
     private static final ForgeConfigSpec.IntValue MAX_CHUNKS_PER_PACKET = BUILDER
             .comment("How many chunks should be sent per claim update packet.")
             .comment("Set to a higher amount if mods such as XLPackets are installed.")
@@ -157,6 +166,8 @@ public class ServerConfig {
     public static Set<ChunkInteractionType> factionClaimRestrictions;
     public static Set<String> coreClaimDimensions;
     public static Set<String> factionClaimDimensions;
+    public static int factionBaseClaimLimit;
+    public static int factionAdditionalClaimLimitPerMember;
     public static int maxChunksPerPacket;
 
 
@@ -185,6 +196,8 @@ public class ServerConfig {
         factionClaimRestrictions = FACTION_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
         coreClaimDimensions = new HashSet<>(CORE_CLAIM_DIMENSIONS.get());
         factionClaimDimensions = new HashSet<>(FACTION_CLAIM_DIMENSIONS.get());
+        factionBaseClaimLimit = FACTION_BASE_CLAIM_LIMIT.get();
+        factionAdditionalClaimLimitPerMember = FACTION_ADDITIONAL_CLAIM_LIMIT_PER_MEMBER.get();
         maxChunksPerPacket = MAX_CHUNKS_PER_PACKET.get();
     }
 }

@@ -182,6 +182,12 @@ public class ClaimManager extends SavedData {
         return dims.values().stream().mapToInt(Set::size).sum();
     }
 
+    public int getFactionClaimCount(String factionName) {
+        Map<ResourceKey<Level>, Set<Long>> dims = factionClaims.get(factionName);
+        if (dims == null) return 0;
+        return dims.values().stream().mapToInt(Set::size).sum();
+    }
+
     public void deleteFactionData(String factionName){
         factionPoints.remove(factionName);
         factionClaims.remove(factionName);

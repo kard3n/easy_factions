@@ -64,6 +64,10 @@ public class ChunkClaimSelectionManager {
             throw new RuntimeException("No chunks in your selected area can be claimed");
         }
 
+        int chunksUnderClaimLimit = ServerConfig.factionBaseClaimLimit + (ServerConfig.factionAdditionalClaimLimitPerMember * faction.getMembers().size()) -  claimManager.getFactionClaimCount(faction.getName());
+        if(chunksToClaim.size() > chunksUnderClaimLimit) {
+            throw new RuntimeException("Cannot claim chunks above your faction's claim limit. You may only claim " + chunksUnderClaimLimit + " more chunks.");
+        }
 
         int cost = chunksToClaim.size() * ServerConfig.chunkCost;
         if (claimManager.getPoints(faction.getName()) < cost) {
