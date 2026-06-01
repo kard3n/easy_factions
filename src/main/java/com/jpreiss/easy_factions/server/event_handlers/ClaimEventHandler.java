@@ -12,6 +12,8 @@ import com.jpreiss.easy_factions.server.claims.ClaimManager;
 import com.jpreiss.easy_factions.server.claims.model.ClaimData;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -93,13 +95,15 @@ public class ClaimEventHandler {
             killerLeaderCoreChunks.add(0L);
         }
 
-        // Identify chunks of victim faction
+        // Identify nearest chunks of the victim faction to the killing faction
         Map<ResourceKey<Level>, Set<Long>> victimLeaderCoreChunksMap = claimManager.getFactionChunks(victimFaction.getName());
         if (victimLeaderCoreChunksMap == null) victimLeaderCoreChunksMap = new HashMap<>();
         Set<Long> victimFactionChunks = victimLeaderCoreChunksMap.get(dimension);
         if (victimFactionChunks == null || victimFactionChunks.isEmpty()) return;
 
         Map<ResourceLocation, List<Long>> unclaimedChunks = new HashMap<>();
+
+        int numberOfUnclaimedChunks = 0;
 
         // Remove chunks from the victim faction
         while (currentPoints >= chunkCost && !victimFactionChunks.isEmpty()) {
@@ -113,6 +117,7 @@ public class ClaimEventHandler {
                 claimManager.addPoints(killerFaction.getName(), ServerConfig.pointsPerStolenChunk);
                 currentPoints -= chunkCost;
                 unclaimedChunks.computeIfAbsent(dimension.location(), k -> new ArrayList<>()).add(chunkToRemove);
+                numberOfUnclaimedChunks++;
             } else {
                 break;
             }
@@ -120,6 +125,8 @@ public class ClaimEventHandler {
 
         if (!unclaimedChunks.isEmpty()) {
             NetworkManager.notifyChunkUnclaim(unclaimedChunks, server);
+            String msg = killerFaction.getName() + " has removed " + numberOfUnclaimedChunks + " chunks from " + victimFaction.getName() + " through a PvP kill!";
+            NetworkManager.broadcastMessage(Component.literal(msg).withStyle(ChatFormatting.GOLD), server);
         }
     }
 

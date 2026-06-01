@@ -9,6 +9,7 @@ import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +20,15 @@ import net.minecraft.world.level.Level;
 import java.util.*;
 
 public class NetworkManager {
+
+    /**
+     * Sends a message to all online players
+     * @param message The formatted message to send
+     * @param server The server instance
+     */
+    public static void broadcastMessage(Component message, MinecraftServer server) {
+        server.getPlayerList().broadcastSystemMessage(message, false);
+    }
 
     public static void updatePlayerAboutOthers(ServerPlayer player, MinecraftServer server) {
         if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
