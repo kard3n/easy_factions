@@ -25,6 +25,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.event.entity.EntityMobGriefingEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -289,6 +290,29 @@ public class ClaimEventHandler {
             BlockPos targetPos = blockHit.getBlockPos();
 
             if (!playerHasPermission(event.getEntity(), targetPos, event.getLevel().dimension(), ChunkInteractionType.USE_BUCKET, server)) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityAttacked(LivingAttackEvent event) {
+        MinecraftServer server = event.getEntity().getServer();
+        if (server == null) return;
+        ClaimManager claimManager = ClaimManager.get(server);
+
+        if(event.getSource().getEntity() instanceof Player player) {
+            if (!claimManager.isClaimed(event.getEntity().level().dimension(), event.getEntity().chunkPosition())) return;
+
+            ClaimData claim = claimManager.getClaim(event.getEntity().level().dimension(), event.getEntity().chunkPosition());
+
+            boolean restricted = switch (claim.type) {
+                case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
+                case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
+                case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
+            };
+
+            if (restricted) {
                 event.setCanceled(true);
             }
         }

@@ -13,6 +13,7 @@ public enum ChunkInteractionType {
     MOB_GRIEFING_DAMAGE,
     EXPLOSION_DAMAGE,
     PISTON_MOVE,
-    USE_BUCKET
+    USE_BUCKET,
+    PLAYER_ATTACK
 }
 

@@ -93,17 +93,18 @@ public class ServerConfig {
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> ADMIN_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in admin-claimed chunks")
-            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET")
-            .defineListAllowEmpty("adminClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "RIGHT_CLICK_BLOCK", "LEFT_CLICK_BLOCK", "RIGHT_CLICK_ITEM", "INTERACT_ENTITY", "USE_BUCKET"), ServerConfig::validateRestriction);
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET, PLAYER_ATTACK")
+            .comment("'PLAYER_ATTACK' prevents players from attacking entities.")
+            .defineListAllowEmpty("adminClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "RIGHT_CLICK_BLOCK", "LEFT_CLICK_BLOCK", "RIGHT_CLICK_ITEM", "INTERACT_ENTITY", "USE_BUCKET", "PLAYER_ATTACK"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in core-claimed chunks")
-            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET")
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET, PLAYER_ATTACK")
             .defineListAllowEmpty("coreClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "RIGHT_CLICK_BLOCK", "LEFT_CLICK_BLOCK", "RIGHT_CLICK_ITEM", "INTERACT_ENTITY", "USE_BUCKET"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FACTION_CLAIM_RESTRICTIONS = BUILDER
             .comment("The restrictions set for non-members in faction-claimed chunks")
-            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET")
+            .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, USE_BUCKET, PLAYER_ATTACK")
             .defineListAllowEmpty("factionClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "RIGHT_CLICK_BLOCK", "LEFT_CLICK_BLOCK", "RIGHT_CLICK_ITEM", "INTERACT_ENTITY", "USE_BUCKET"), ServerConfig::validateRestriction);
 
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_DIMENSIONS = BUILDER
