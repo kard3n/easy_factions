@@ -13,6 +13,7 @@ import com.jpreiss.easy_factions.server.claims.model.ClaimData;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -22,10 +23,16 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.event.entity.EntityMobGriefingEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.FillBucketEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.event.level.PistonEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -132,7 +139,7 @@ public class ClaimEventHandler {
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!playerHasPermission(event.getPlayer(), event.getPlayer().chunkPosition(), event.getPlayer().level().dimension(), ChunkInteractionType.BREAK_BLOCK, event.getLevel().getServer())) {
+        if (!playerHasPermission(event.getPlayer(), event.getPos(), event.getPlayer().level().dimension(), ChunkInteractionType.BREAK_BLOCK, event.getLevel().getServer())) {
             event.setCanceled(true);
         }
     }
@@ -140,7 +147,7 @@ public class ClaimEventHandler {
     @SubscribeEvent
     public static void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         if (event.getEntity() instanceof Player player) {
-            if (!playerHasPermission(player, player.chunkPosition(), player.level().dimension(), ChunkInteractionType.PLACE_BLOCK, event.getLevel().getServer())) {
+            if (!playerHasPermission(player, event.getPos(), player.level().dimension(), ChunkInteractionType.PLACE_BLOCK, event.getLevel().getServer())) {
                 event.setCanceled(true);
             } else if (event.getEntity() instanceof TamableAnimal animal && !animal.isOwnedBy(player)) {
                 event.setCanceled(true);
@@ -156,8 +163,21 @@ public class ClaimEventHandler {
             return;
         }
 
-        if (!playerHasPermission(player, player.chunkPosition(), player.level().dimension(), ChunkInteractionType.INTERACT_BLOCK, server))
+        if (!playerHasPermission(player, event.getPos(), player.level().dimension(), ChunkInteractionType.RIGHT_CLICK_BLOCK, server))
             event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onBlockLeftClick(PlayerInteractEvent.LeftClickBlock event) {
+        Player player = event.getEntity();
+        MinecraftServer server = event.getEntity().getServer();
+        if (server == null) {
+            return;
+        }
+
+        if (!playerHasPermission(player, event.getPos(), player.level().dimension(), ChunkInteractionType.LEFT_CLICK_BLOCK, server)) {
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent
@@ -166,8 +186,112 @@ public class ClaimEventHandler {
         MinecraftServer server = event.getEntity().getServer();
         if (server == null) return;
 
-        if (!playerHasPermission(player, player.chunkPosition(), player.level().dimension(), ChunkInteractionType.RIGHT_CLICK_ITEM, server))
+        if (!playerHasPermission(player, event.getPos(), player.level().dimension(), ChunkInteractionType.RIGHT_CLICK_ITEM, server))
             event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        Player player = event.getEntity();
+        MinecraftServer server = event.getEntity().getServer();
+        if (server == null) {
+            return;
+        }
+
+        if (!playerHasPermission(player, event.getPos(), player.level().dimension(), ChunkInteractionType.INTERACT_ENTITY, server)) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMobGriefing(EntityMobGriefingEvent event) {
+        if (event.getEntity() == null) return;
+        MinecraftServer server = event.getEntity().getServer();
+        if (server == null) return;
+        ClaimManager claimManager = ClaimManager.get(server);
+        ChunkPos chunkPos = event.getEntity().chunkPosition();
+        ResourceKey<Level> dimension = event.getEntity().level().dimension();
+
+        if (!claimManager.isClaimed(dimension, chunkPos)) return;
+        ClaimData claim = claimManager.getClaim(dimension, chunkPos);
+
+        switch (claim.type) {
+            case FACTION:
+                if (ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
+                    event.setResult(Event.Result.DENY);
+                }
+                break;
+            case CORE:
+                if (ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
+                    event.setResult(Event.Result.DENY);
+                }
+                break;
+            case ADMIN:
+                if (ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
+                    event.setResult(Event.Result.DENY);
+                }
+                break;
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        if (event.getLevel().isClientSide()) return;
+        MinecraftServer server = event.getLevel().getServer();
+        if (server == null) return;
+        ClaimManager claimManager = ClaimManager.get(server);
+
+        event.getAffectedBlocks().removeIf(blockPos -> {
+            ChunkPos chunkPos = new ChunkPos(blockPos);
+            ResourceKey<Level> dimension = event.getLevel().dimension();
+            if (!claimManager.isClaimed(dimension, chunkPos)) return false;
+            ClaimData claim = claimManager.getClaim(dimension, chunkPos);
+
+            return switch (claim.type) {
+                case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
+                case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
+                case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
+            };
+        });
+    }
+
+    @SubscribeEvent
+    public static void onPistonMove(PistonEvent.Pre event) {
+        if (!(event.getLevel() instanceof Level level)) return;
+        if (event.getLevel().isClientSide()) return;
+        MinecraftServer server = event.getLevel().getServer();
+        if (server == null) return;
+        ClaimManager claimManager = ClaimManager.get(server);
+        ChunkPos pistonChunk = new ChunkPos(event.getPos());
+
+        if (!claimManager.isClaimed(level.dimension(), pistonChunk)) return;
+
+        ClaimData claim = claimManager.getClaim(level.dimension(), pistonChunk);
+
+        boolean restricted = switch (claim.type) {
+            case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
+            case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
+            case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
+        };
+
+        if (restricted) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBucketUse(FillBucketEvent event) {
+        if (event.getLevel().isClientSide()) return;
+        MinecraftServer server = event.getEntity().getServer();
+        if (server == null) return;
+
+        if (event.getTarget() instanceof BlockHitResult blockHit) {
+            BlockPos targetPos = blockHit.getBlockPos();
+
+            if (!playerHasPermission(event.getEntity(), targetPos, event.getLevel().dimension(), ChunkInteractionType.USE_BUCKET, server)) {
+                event.setCanceled(true);
+            }
+        }
     }
 
     @SubscribeEvent
@@ -180,6 +304,13 @@ public class ClaimEventHandler {
     public static void onFactionDisband(FactionDisbandEvent event) {
         var server = ServerLifecycleHooks.getCurrentServer();
         ClaimManager.get(server).deleteFactionData(event.getFaction().getName());
+    }
+
+    /**
+     * Returns true if the player is a member of the region the block is in for the current block
+     */
+    public static boolean playerHasPermission(Player player, BlockPos pos, ResourceKey<Level> dimension, ChunkInteractionType type, MinecraftServer server) {
+        return playerHasPermission(player, new ChunkPos(pos), dimension, type, server);
     }
 
     /**

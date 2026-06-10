@@ -6,6 +6,13 @@ package com.jpreiss.easy_factions.server.claims;
 public enum ChunkInteractionType {
     BREAK_BLOCK,
     PLACE_BLOCK,
-    INTERACT_BLOCK,
-    RIGHT_CLICK_ITEM
+    RIGHT_CLICK_BLOCK,
+    LEFT_CLICK_BLOCK,
+    RIGHT_CLICK_ITEM,
+    INTERACT_ENTITY,
+    MOB_GRIEFING_DAMAGE,
+    EXPLOSION_DAMAGE,
+    PISTON_MOVE,
+    USE_BUCKET
 }
+
