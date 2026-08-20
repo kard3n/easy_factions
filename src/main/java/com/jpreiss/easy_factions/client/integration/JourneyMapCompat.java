@@ -4,12 +4,12 @@ import com.jpreiss.easy_factions.EasyFactions;
 import com.jpreiss.easy_factions.client.ClientConfig;
 import com.jpreiss.easy_factions.client.data_store.ClientClaimCache;
 import com.mojang.logging.LogUtils;
-import journeymap.client.api.IClientAPI;
-import journeymap.client.api.IClientPlugin;
-import journeymap.client.api.display.PolygonOverlay;
-import journeymap.client.api.event.ClientEvent;
-import journeymap.client.api.model.MapPolygon;
-import journeymap.client.api.model.ShapeProperties;
+import journeymap.api.v2.client.IClientAPI;
+import journeymap.api.v2.client.IClientPlugin;
+import journeymap.api.v2.common.JourneyMapPlugin;
+import journeymap.api.v2.client.display.PolygonOverlay;
+import journeymap.api.v2.client.model.MapPolygon;
+import journeymap.api.v2.client.model.ShapeProperties;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -17,19 +17,13 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.awt.Rectangle;
 import java.awt.geom.Area;
 import java.awt.geom.PathIterator;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-@ParametersAreNonnullByDefault
-@journeymap.client.api.ClientPlugin
+@JourneyMapPlugin(apiVersion = "2.0.0")
 public class JourneyMapCompat implements IClientPlugin {
-
     private static IClientAPI jmAPI = null;
     private static final Logger LOGGER = LogUtils.getLogger();
 
@@ -44,10 +38,6 @@ public class JourneyMapCompat implements IClientPlugin {
     @Override
     public String getModId() {
         return EasyFactions.MODID;
-    }
-
-    @Override
-    public void onEvent(ClientEvent clientEvent) {
     }
 
     /**
@@ -72,7 +62,7 @@ public class JourneyMapCompat implements IClientPlugin {
 
         // Group chunks by color and grid size
         Map<String, List<ChunkPos>> chunksByGroup = new HashMap<>();
-        int gridSize = ClientConfig.claimMergeGridSize;
+        int gridSize = ClientConfig.CLAIM_MERGE_GRID_SIZE.get();
 
         for (Map.Entry<Long, Integer> entry : dimClaims.entrySet()) {
             ChunkPos pos = new ChunkPos(entry.getKey());
@@ -126,7 +116,7 @@ public class JourneyMapCompat implements IClientPlugin {
             switch (type) {
                 case PathIterator.SEG_MOVETO:
                 case PathIterator.SEG_LINETO:
-                    currentPoints.add(new BlockPos((int) coords[0], 100, (int) coords[1]));
+                    currentPoints.add(new BlockPos((int) coords[0], 64, (int) coords[1]));
                     break;
                 case PathIterator.SEG_CLOSE:
                     if (!currentPoints.isEmpty()) {
@@ -156,40 +146,40 @@ public class JourneyMapCompat implements IClientPlugin {
     }
 
     /**
+     * Determines whether a polygon ring represents an interior hole
+     * based on AWT's winding order (Counter-Clockwise = Hole).
+     *
+     * @param points The vertices defining the closed polygon contour.
+     * @return true if the polygon is a hole; false if it is an outer boundary.
+     */
+    private static boolean isHole(List<BlockPos> points) {
+        double sum = 0;
+        for (int i = 0; i < points.size(); i++) {
+            BlockPos p1 = points.get(i);
+            BlockPos p2 = points.get((i + 1) % points.size());
+            sum += (p2.getX() - p1.getX()) * (p2.getZ() + p1.getZ());
+        }
+        return sum < 0; // Standard AWT definition: negative sum = CCW (hole)
+    }
+
+    /**
      * Submits a MapPolygon to JourneyMap.
      */
     private static void submitOverlay(ResourceKey<Level> dim, int color, String groupKey, MapPolygon outer, List<MapPolygon> holes, int index, List<PolygonOverlay> overlayTracker) {
         String displayId = "faction_merge_" + groupKey + "_" + index;
-
-        ShapeProperties properties = new ShapeProperties().setStrokeColor(color).setStrokeOpacity(ClientConfig.chunkBorderOpacity).setStrokeWidth(ClientConfig.chunkBorderWidth).setFillColor(color).setFillOpacity(ClientConfig.chunkOverlayOpacity);
-
-        PolygonOverlay overlay;
-        if (holes.isEmpty()) {
-            overlay = new PolygonOverlay(EasyFactions.MODID, displayId, dim, properties, outer);
-        } else {
-            overlay = new PolygonOverlay(EasyFactions.MODID, displayId, dim, properties, outer, holes);
-        }
-
         try {
+            ShapeProperties properties = new ShapeProperties()
+                    .setStrokeColor(color)
+                    .setStrokeOpacity(ClientConfig.CHUNK_BORDER_OPACITY.get().floatValue())
+                    .setStrokeWidth(ClientConfig.CHUNK_BORDER_WIDTH.get().floatValue())
+                    .setFillColor(color)
+                    .setFillOpacity(ClientConfig.CHUNK_OVERLAY_OPACITY.get().floatValue());
+
+            PolygonOverlay overlay = new PolygonOverlay(EasyFactions.MODID, dim, properties, outer, holes);
             jmAPI.show(overlay);
             overlayTracker.add(overlay);
         } catch (Exception e) {
-            LOGGER.atError().log(e.getMessage());
+            LOGGER.warn("[EasyFactions] Failed to show overlay {}: {}", displayId, e.getMessage());
         }
-    }
-
-    /**
-     * Mathematical helper to determine winding order (Outer Boundary vs Internal Hole).
-     * Note: Due to Minecraft's X/Z coordinate grid, the standard AWT winding math is inverted.
-     */
-    private static boolean isHole(List<BlockPos> vertices) {
-        double sum = 0;
-        for (int i = 0; i < vertices.size(); i++) {
-            BlockPos p1 = vertices.get(i);
-            BlockPos p2 = vertices.get((i + 1) % vertices.size());
-            sum += (p2.getX() - p1.getX()) * (p2.getZ() + p1.getZ());
-        }
-        // Flipped operator: AWT Area outer boundaries evaluate to sum > 0, holes evaluate to sum < 0 (thanks for this, AI)
-        return sum < 0;
     }
 }

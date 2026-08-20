@@ -1,0 +1,13 @@
+{
+  "itemGroup.easy_factions": "Example Mod Tab",
+  "block.easy_factions.example_block": "Example Block",
+  "item.easy_factions.example_item": "Example Item",
+
+  "easy_factions.configuration.title": "Easy Factions Configs",
+  "easy_factions.configuration.section.easy_factions.common.toml": "Easy Factions Configs",
+  "easy_factions.configuration.section.easy_factions.common.toml.title": "Easy Factions Configs",
+  "easy_factions.configuration.items": "Item List",
+  "easy_factions.configuration.logDirtBlock": "Log Dirt Block",
+  "easy_factions.configuration.magicNumberIntroduction": "Magic Number Text",
+  "easy_factions.configuration.magicNumber": "Magic Number"
+}

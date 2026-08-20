@@ -1,8 +1,7 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceOperation;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionMemberOperation;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -10,19 +9,11 @@ import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
-
 public class ScrollableAllianceInviteList extends ObjectSelectionList<ScrollableAllianceInviteList.InviteEntry> {
 
-    public ScrollableAllianceInviteList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableAllianceInviteList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Disable background behind items
-        this.setRenderBackground(false);
-
-        // Disable dirt overlay
-        this.setRenderTopAndBottom(false);
     }
 
     public void addInvite(String name, boolean isInvited, boolean localPlayerCanInvite) {
@@ -36,7 +27,7 @@ public class ScrollableAllianceInviteList extends ObjectSelectionList<Scrollable
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -55,13 +46,13 @@ public class ScrollableAllianceInviteList extends ObjectSelectionList<Scrollable
 
             if (isInvited){
                 this.buttonInvite = Button.builder(Component.literal("Revoke Invitation"), (btn) -> {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.REVOKE_INVITE, this.shownFactionName));
+                    PacketDistributor.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.REVOKE_INVITE, this.shownFactionName));
                     // TODO: update list
                 }).bounds(0, 0, 70, 20).build();
             }
             else {
                 this.buttonInvite = Button.builder(Component.literal("Invite"), (btn) -> {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.INVITE, this.shownFactionName));
+                    PacketDistributor.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.INVITE, this.shownFactionName));
                     // TODO: update list
                 }).bounds(0, 0, 70, 20).build();
             }

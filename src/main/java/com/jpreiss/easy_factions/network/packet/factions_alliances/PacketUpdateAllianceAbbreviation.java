@@ -1,36 +1,31 @@
 package com.jpreiss.easy_factions.network.packet.factions_alliances;
 
 import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketUpdateAllianceAbbreviation(String allianceName, String abbreviation) implements CustomPacketPayload {
+    public static final Type<PacketUpdateAllianceAbbreviation> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_update_alliance_abbreviation"));
 
-public class PacketUpdateAllianceAbbreviation {
-    private final String allianceName;
-    private final String abbreviation;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketUpdateAllianceAbbreviation> STREAM_CODEC =
+        StreamCodec.composite(
+                ByteBufCodecs.STRING_UTF8,
+                PacketUpdateAllianceAbbreviation::allianceName,
+                ByteBufCodecs.STRING_UTF8,
+                PacketUpdateAllianceAbbreviation::abbreviation,
+                PacketUpdateAllianceAbbreviation::new
+        );
 
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
-    public PacketUpdateAllianceAbbreviation(String allianceName, String abbreviation) {
-        this.allianceName = allianceName;
-        this.abbreviation = abbreviation;
-    }
-
-    public static void encode(PacketUpdateAllianceAbbreviation msg, FriendlyByteBuf buf) {
-        buf.writeUtf(msg.allianceName);
-        buf.writeUtf(msg.abbreviation);
-    }
-
-    public static PacketUpdateAllianceAbbreviation decode(FriendlyByteBuf buf) {
-        return new PacketUpdateAllianceAbbreviation(buf.readUtf(), buf.readUtf());
-    }
-
-    public static void handle(PacketUpdateAllianceAbbreviation msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            ClientAllianceData.update(msg.allianceName, msg.abbreviation);
-        }));
-        ctx.get().setPacketHandled(true);
+    public static void handle(PacketUpdateAllianceAbbreviation msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ClientAllianceData.update(msg.allianceName(), msg.abbreviation());
+        });
     }
 }

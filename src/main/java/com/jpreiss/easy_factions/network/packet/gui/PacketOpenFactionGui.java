@@ -9,40 +9,37 @@ import com.jpreiss.easy_factions.server.alliance.Alliance;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.*;
-import java.util.function.Supplier;
 
-/**
- * Packet sent when the player opens the faction GUI
- * Server replies with GUI data
- */
-public class PacketOpenFactionGui {
-    public PacketOpenFactionGui() {
-    }
+public record PacketOpenFactionGui() implements CustomPacketPayload {
+    public static final Type<PacketOpenFactionGui> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_open_faction_gui"));
 
-    public static void encode(PacketOpenFactionGui msg, FriendlyByteBuf buf) {
-    }
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketOpenFactionGui> STREAM_CODEC =
+        StreamCodec.ofMember(PacketOpenFactionGui::write, PacketOpenFactionGui::read);
 
-    public static PacketOpenFactionGui decode(FriendlyByteBuf buf) {
+    private static PacketOpenFactionGui read(RegistryFriendlyByteBuf buf) {
         return new PacketOpenFactionGui();
     }
 
-    /**
-     * Handled on server side
-     *
-     * @param msg
-     * @param ctx
-     */
-    public static void handle(PacketOpenFactionGui msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
+    private void write(RegistryFriendlyByteBuf buf) {
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketOpenFactionGui msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) ctx.player();
             if (player == null) return;
             MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             if (server == null) return;
@@ -57,7 +54,7 @@ public class PacketOpenFactionGui {
                 Map<UUID, String> playerNames = new HashMap<>();
                 for (UUID uuid : faction.getMembers()) {
                     String name = Utils.getPlayerNameOffline(uuid, server);
-                    if (faction.getOwner() == uuid) {
+                    if (faction.getOwner().equals(uuid)) {
                         memberRanks.put(uuid, MemberRank.OWNER);
                     } else if (faction.getOfficers().contains(uuid)) {
                         memberRanks.put(uuid, MemberRank.OFFICER);
@@ -100,8 +97,8 @@ public class PacketOpenFactionGui {
 
                 List<String> allianceNames = allianceManager.getAllianceNames().stream().toList();
 
-                boolean factionAllowAbbreviationChange = ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || faction.getAbbreviation() == null);
-                boolean allianceAllowAbbreviationChange = alliance != null && ServerConfig.enableAbbreviation && (ServerConfig.allowAbbreviationChange || alliance.getAbbreviation() == null);
+                boolean factionAllowAbbreviationChange = ServerConfig.ENABLE_ABBREVIATION.get() && (ServerConfig.ALLOW_ABBREVIATION_CHANGE.get() || faction.getAbbreviation() == null);
+                boolean allianceAllowAbbreviationChange = alliance != null && ServerConfig.ENABLE_ABBREVIATION.get() && (ServerConfig.ALLOW_ABBREVIATION_CHANGE.get() || alliance.getAbbreviation() == null);
 
                 response = new PacketSyncFactionGuiData(
                         faction.getName(),
@@ -120,8 +117,8 @@ public class PacketOpenFactionGui {
                         faction.getFriendlyFire(),
                         faction.getColor(),
                         allianceColor,
-                        ServerConfig.factionAbbreviationMaxLength,
-                        ServerConfig.allianceAbbreviationMaxLength,
+                        ServerConfig.FACTION_ABBREVIATION_MAX_LENGTH.get(),
+                        ServerConfig.ALLIANCE_ABBREVIATION_MAX_LENGTH.get(),
                         factionAllowAbbreviationChange,
                         allianceAllowAbbreviationChange
                 );
@@ -130,8 +127,7 @@ public class PacketOpenFactionGui {
                 response = new PacketSyncFactionGuiData(factionManager.getInvitesForPlayer(player.getUUID()));
             }
 
-            NetworkHandler.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), response);
+            PacketDistributor.sendToPlayer(player, response);
         });
-        ctx.get().setPacketHandled(true);
     }
 }

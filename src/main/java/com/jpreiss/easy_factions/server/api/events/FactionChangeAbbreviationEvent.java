@@ -2,7 +2,7 @@ package com.jpreiss.easy_factions.server.api.events;
 
 import com.jpreiss.easy_factions.server.faction.Faction;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 /**
  * Fired when the abbreviation of an alliance changes

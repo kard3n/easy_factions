@@ -4,38 +4,36 @@ import com.jpreiss.easy_factions.common.RelationshipStatus;
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketAllianceSetRelationAction(String allianceName, RelationshipStatus relationshipStatus) implements CustomPacketPayload {
 
-/**
- * Client -> Server packet for setting the relation with another faction
- */
-public class PacketAllianceSetRelationAction {
+    public static final Type<PacketAllianceSetRelationAction> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_alliance_set_relation_action"));
 
-    private final String allianceName;
-    private final RelationshipStatus relationshipStatus;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketAllianceSetRelationAction> STREAM_CODEC =
+        StreamCodec.ofMember(PacketAllianceSetRelationAction::write, PacketAllianceSetRelationAction::read);
 
-    public PacketAllianceSetRelationAction(String allianceName, RelationshipStatus relationshipStatus) {
-        this.allianceName = allianceName;
-        this.relationshipStatus = relationshipStatus;
-    }
-
-    public static void encode(PacketAllianceSetRelationAction msg, FriendlyByteBuf buf) {
-        buf.writeUtf(msg.allianceName);
-        buf.writeEnum(msg.relationshipStatus);
-    }
-
-    public static PacketAllianceSetRelationAction decode(FriendlyByteBuf buf) {
+    private static PacketAllianceSetRelationAction read(RegistryFriendlyByteBuf buf) {
         return new PacketAllianceSetRelationAction(buf.readUtf(), buf.readEnum(RelationshipStatus.class));
     }
 
-    public static void handle(PacketAllianceSetRelationAction msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
+    private void write(RegistryFriendlyByteBuf buf) {
+        buf.writeUtf(allianceName);
+        buf.writeEnum(relationshipStatus);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketAllianceSetRelationAction msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) ctx.player();
             if (player == null) return;
             MinecraftServer server = player.getServer();
             if (server == null) return;
@@ -47,13 +45,12 @@ public class PacketAllianceSetRelationAction {
                 if (!factionStateManager.playerOwnsFaction(player.getUUID())){
                     throw new RuntimeException("Player is not owner of a faction");
                 }
-                allianceManager.setRelation( msg.allianceName, player, msg.relationshipStatus);
+                allianceManager.setRelation(msg.allianceName(), player, msg.relationshipStatus());
                 // If successful, re-open/refresh the GUI
                 PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);
             } catch (Exception e) {
                 NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
             }
         });
-        ctx.get().setPacketHandled(true);
     }
 }

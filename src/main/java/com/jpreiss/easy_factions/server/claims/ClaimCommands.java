@@ -85,7 +85,7 @@ public class ClaimCommands {
                         .executes(ctx -> {
                             try {
                                 Faction faction = FactionStateManager.get(ctx.getSource().getServer()).getFactionByPlayer(ctx.getSource().getPlayerOrException().getUUID());
-                                ctx.getSource().sendSuccess(() -> Component.literal("Your faction has " + ClaimManager.get(ctx.getSource().getServer()).getPoints(faction.getName()) + " points. You can claim " + ClaimManager.get(ctx.getSource().getServer()).getPoints(faction.getName()) / ServerConfig.pointGenerationAmount + " more chunks."), false);
+                                ctx.getSource().sendSuccess(() -> Component.literal("Your faction has " + ClaimManager.get(ctx.getSource().getServer()).getPoints(faction.getName()) + " points. You can claim " + ClaimManager.get(ctx.getSource().getServer()).getPoints(faction.getName()) / ServerConfig.POINT_GENERATION_AMOUNT.get() + " more chunks."), false);
                             } catch (RuntimeException | CommandSyntaxException e) {
                                 ctx.getSource().sendFailure(Component.literal(e.getMessage()));
                                 return 0;

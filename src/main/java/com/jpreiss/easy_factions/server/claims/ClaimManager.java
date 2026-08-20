@@ -6,6 +6,7 @@ import com.jpreiss.easy_factions.server.claims.model.ClaimType;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -16,7 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -43,7 +44,7 @@ public class ClaimManager extends SavedData {
     private final Map<String, Map<String, Integer>> killPoints = new HashMap<>();
 
     public static ClaimManager get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(ClaimManager::load, ClaimManager::create, DATA_NAME);
+        return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(ClaimManager::create, ClaimManager::load), DATA_NAME);
     }
 
     public static ClaimManager create() {
@@ -222,7 +223,7 @@ public class ClaimManager extends SavedData {
         return playerCoreClaims.getOrDefault(playerUuid, Collections.emptyMap());
     }
 
-    public static ClaimManager load(CompoundTag tag) {
+    public static ClaimManager load(CompoundTag tag, HolderLookup.Provider provider) {
         ClaimManager manager = new ClaimManager();
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
 
@@ -261,14 +262,14 @@ public class ClaimManager extends SavedData {
                     color = faction.getColor();
                 }
             } else if (type == ClaimType.ADMIN) {
-                color = ServerConfig.adminClaimColor;
+                color = ServerConfig.ADMIN_CLAIM_COLOR.get();
             } else if (type == ClaimType.CORE) {
-                color = ServerConfig.coreClaimColor;
+                color = ServerConfig.CORE_CLAIM_COLOR.get();
             }
 
             ResourceKey<Level> dim;
             if (c.contains("Dim")) {
-                dim = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(c.getString("Dim")));
+                dim = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(c.getString("Dim")));
             } else {
                 dim = Level.OVERWORLD;
             }
@@ -280,7 +281,7 @@ public class ClaimManager extends SavedData {
     }
 
     @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag, HolderLookup.Provider provider) {
         CompoundTag pointsTag = new CompoundTag();
         factionPoints.forEach(pointsTag::putInt);
         tag.put("Points", pointsTag);

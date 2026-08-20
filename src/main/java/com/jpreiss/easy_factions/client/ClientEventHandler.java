@@ -5,7 +5,7 @@ import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.client.data_store.ClientRelationshipData;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import com.jpreiss.easy_factions.network.NetworkHandler;
+
 import com.jpreiss.easy_factions.network.packet.gui.PacketOpenFactionGui;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -13,17 +13,23 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.EntityAttachment;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderNameTagEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.RenderNameTagEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Matrix4f;
+
+import java.util.Objects;
 
 import static com.jpreiss.easy_factions.client.Keybinds.OPEN_FACTION_GUI;
 
-@Mod.EventBusSubscriber(modid = EasyFactions.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = EasyFactions.MODID, value = Dist.CLIENT)
 public class ClientEventHandler {
     private static final ChatFormatting alliedAllianceColor = ChatFormatting.DARK_PURPLE;
     private static final ChatFormatting alliedFactionColor = ChatFormatting.LIGHT_PURPLE;
@@ -40,17 +46,17 @@ public class ClientEventHandler {
      */
     @SubscribeEvent
     public static void onRenderNameTag(RenderNameTagEvent event) {
-        if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.DENY) return;
+        if (event.canRender() == TriState.FALSE) return;
         if (!(event.getEntity() instanceof Player player)) return;
         if (player.isInvisible()) return;
 
         String factionName = ClientFactionData.getFaction(player.getUUID());
         if (factionName == null) return;
 
-        String factionAbbreviation = ClientConfig.getShowFactionAbbreviation() ? ClientFactionData.getAbbreviation(factionName) : null;
+        String factionAbbreviation = ClientConfig.SHOW_FACTION_ABBREVIATION.get() ? ClientFactionData.getAbbreviation(factionName) : null;
 
         String allianceName = ClientAllianceData.getAlliance(factionName);
-        String allianceAbbreviation = ClientConfig.getShowAllianceAbbreviation() ? ClientAllianceData.getAbbreviation(allianceName) : null;
+        String allianceAbbreviation = ClientConfig.SHOW_ALLIANCE_ABBREVIATION.get() ? ClientAllianceData.getAbbreviation(allianceName) : null;
 
         Player viewer = Minecraft.getInstance().player;
         String viewerFaction = null;
@@ -84,23 +90,24 @@ public class ClientEventHandler {
         PoseStack poseStack = event.getPoseStack();
         poseStack.pushPose();
 
-        // Position at the name tag height
-        float heightOffset = player.getBbHeight() + 0.5F;
-        if (player.isCrouching()) {
-            heightOffset -= 0.25F;
-            poseStack.translate(0.0D, 0.25D, 0.0D);
-        }
-        poseStack.translate(0.0D, heightOffset, 0.0D);
+        // Gert nametag pos through the attachment system
+        Vec3 nameTagPos = player.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, player.getYRot());
 
-        // Rotate to face camera
+        if (nameTagPos != null) {
+            poseStack.translate(nameTagPos.x(), nameTagPos.y(), nameTagPos.z());
+        } else {
+            // Safe fallback just in case the attachment is missing
+            poseStack.translate(0.0D, player.getBbHeight() + 0.5D, 0.0D);
+        }
+
+        // Rotate to face the camera
         poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
 
-        // Scale
-        float scale = 0.025F;
-        poseStack.scale(-scale, -scale, scale);
+        //Scale down text to vanilla size
+        poseStack.scale(0.025F, -0.025F, 0.025F);
 
-        // Move above the vanilla name tag
-        poseStack.translate(0.0D, -10.0D, 0.0D);
+        // Move the text up to appear above the normal nametag
+        poseStack.translate(0.0D, -30.0D, 0.0D);
 
         // Render
         Matrix4f matrix4f = poseStack.last().pose();
@@ -108,12 +115,14 @@ public class ClientEventHandler {
         Font font = mc.font;
         float xOffset = -font.width(displayText) / 2.0f;
 
-        float backgroundOpacity = Minecraft.getInstance().options.getBackgroundOpacity(0.25F);
+        float backgroundOpacity = mc.options.getBackgroundOpacity(0.25F);
         int backgroundColor = (int) (backgroundOpacity * 255.0F) << 24;
 
         boolean isDiscrete = player.isDiscrete();
         int textColor = isDiscrete ? 0x20FFFFFF : 0xFFFFFFFF;
-        Font.DisplayMode displayMode = isDiscrete ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+
+        // Make nametags see-through while sneaking
+        Font.DisplayMode displayMode = isDiscrete ? Font.DisplayMode.NORMAL : Font.DisplayMode.SEE_THROUGH;
 
         font.drawInBatch(
                 displayText,
@@ -160,10 +169,10 @@ public class ClientEventHandler {
     }
 
     @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.END && OPEN_FACTION_GUI.consumeClick()) {
+    public static void onClientTick(ClientTickEvent.Post event) {
+        if (OPEN_FACTION_GUI.consumeClick()) {
             // Instead of opening GUI directly, ask server for data
-            NetworkHandler.CHANNEL.sendToServer(new PacketOpenFactionGui());
+            PacketDistributor.sendToServer(new PacketOpenFactionGui());
         }
     }
 }

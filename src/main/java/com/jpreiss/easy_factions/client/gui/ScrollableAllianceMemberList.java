@@ -1,29 +1,18 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.common.MemberRank;
-import com.jpreiss.easy_factions.network.NetworkHandler;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionMemberOperation;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.util.UUID;
 
 public class ScrollableAllianceMemberList extends ObjectSelectionList<ScrollableAllianceMemberList.MemberEntry> {
 
-    public ScrollableAllianceMemberList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableAllianceMemberList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Disable background behind items
-        this.setRenderBackground(false);
-
-        // Disable dirt overlay
-        this.setRenderTopAndBottom(false);
     }
 
     public void addMember(String name, boolean isClientsFactions) {
@@ -37,7 +26,7 @@ public class ScrollableAllianceMemberList extends ObjectSelectionList<Scrollable
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     // Entry class

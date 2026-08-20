@@ -160,7 +160,7 @@ public class AllianceCommands {
                 .then(Commands.literal("setAbbreviation")
                         .requires(source -> {
                             try {
-                                if (!ServerConfig.enableAbbreviation) {
+                                if (!ServerConfig.ENABLE_ABBREVIATION.get()) {
                                     return false;
                                 }
 
@@ -169,7 +169,7 @@ public class AllianceCommands {
                                     return false;
                                 }
 
-                                return alliance.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
+                                return alliance.getAbbreviation() == null || ServerConfig.ALLOW_ABBREVIATION_CHANGE.get();
                             } catch (RuntimeException e) {
                                 return false;
                             }
@@ -177,8 +177,8 @@ public class AllianceCommands {
                         .then(Commands.argument("abbreviation", StringArgumentType.word())
                                 .executes(context -> {
                                     String abbreviation = StringArgumentType.getString(context, "abbreviation");
-                                    if (ServerConfig.allianceAbbreviationMinLength > abbreviation.length() || abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength) {
-                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.allianceAbbreviationMinLength + " and " + ServerConfig.allianceAbbreviationMaxLength + " letters long."));
+                                    if (ServerConfig.ALLIANCE_ABBREVIATION_MIN_LENGTH.get() > abbreviation.length() || abbreviation.length() > ServerConfig.ALLIANCE_ABBREVIATION_MAX_LENGTH.get()) {
+                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.ALLIANCE_ABBREVIATION_MIN_LENGTH + " and " + ServerConfig.ALLIANCE_ABBREVIATION_MAX_LENGTH.get() + " letters long."));
                                         return 1;
                                     }
 

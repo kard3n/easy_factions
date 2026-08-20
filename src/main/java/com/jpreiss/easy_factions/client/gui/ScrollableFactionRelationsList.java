@@ -1,11 +1,8 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.client.data_store.ClientRelationshipData;
-import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import com.jpreiss.easy_factions.network.NetworkHandler;
-import com.jpreiss.easy_factions.network.packet.gui.PacketFactionMemberOperation;
+import net.neoforged.neoforge.network.PacketDistributor;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionSetRelationAction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,21 +12,14 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.util.UUID;
 
 import static com.jpreiss.easy_factions.common.RelationshipStatus.FRIENDLY;
 
 public class ScrollableFactionRelationsList extends ObjectSelectionList<ScrollableFactionRelationsList.RelationEntry> {
 
-    public ScrollableFactionRelationsList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableFactionRelationsList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Disable background behind items
-        this.setRenderBackground(false);
-
-        // Disable dirt overlay
-        this.setRenderTopAndBottom(false);
     }
 
     public void addFaction(String factionName, RelationshipStatus outgoingFactionStatus, boolean playerCanEdit) {
@@ -43,7 +33,7 @@ public class ScrollableFactionRelationsList extends ObjectSelectionList<Scrollab
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -63,17 +53,17 @@ public class ScrollableFactionRelationsList extends ObjectSelectionList<Scrollab
             // Rank of the person seeing this
 
             this.buttonFriendly = Button.builder(Component.literal("Friendly"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketFactionSetRelationAction(factionName, FRIENDLY));
+                PacketDistributor.sendToServer(new PacketFactionSetRelationAction(factionName, FRIENDLY));
             }).bounds(0, 0, 55, 20).build();
             this.buttonFriendly.active = (outgoingFactionStatus != FRIENDLY) && playerCanEdit;
 
             this.buttonNeutral = Button.builder(Component.literal("Neutral"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketFactionSetRelationAction(factionName, RelationshipStatus.NEUTRAL));
+                PacketDistributor.sendToServer(new PacketFactionSetRelationAction(factionName, RelationshipStatus.NEUTRAL));
             }).bounds(0, 0, 55, 20).build();
             this.buttonNeutral.active = (outgoingFactionStatus != RelationshipStatus.NEUTRAL) && playerCanEdit;
 
             this.buttonHostile = Button.builder(Component.literal("Hostile"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketFactionSetRelationAction(factionName, RelationshipStatus.HOSTILE));
+                PacketDistributor.sendToServer(new PacketFactionSetRelationAction(factionName, RelationshipStatus.HOSTILE));
             }).bounds(0, 0, 55, 20).build();
             this.buttonHostile.active = (outgoingFactionStatus != RelationshipStatus.HOSTILE) && playerCanEdit;
 

@@ -7,13 +7,14 @@ import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.api.events.*;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -26,8 +27,6 @@ import java.util.List;
 public class AllianceStateManager extends SavedData {
     private static final String DATA_NAME = "faction_alliance_data";
 
-    public static final int MAX_ALLIANCE_SIZE = ServerConfig.maxAllianceSize;
-
     // In-memory data
     // Map<AllianceName, Alliance>
     private final Map<String, Alliance> alliances = new HashMap<>();
@@ -37,7 +36,7 @@ public class AllianceStateManager extends SavedData {
 
 
     public static AllianceStateManager get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(AllianceStateManager::load, AllianceStateManager::create, DATA_NAME);
+        return server.overworld().getDataStorage().computeIfAbsent(new SavedData.Factory<>(AllianceStateManager::create, AllianceStateManager::load), DATA_NAME);
     }
 
     public static AllianceStateManager create() {
@@ -62,7 +61,7 @@ public class AllianceStateManager extends SavedData {
         alliances.put(name, alliance);
         factionAllianceMap.put(creatorFaction.getName(), name);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
+        NeoForge.EVENT_BUS.post(new AllianceCreateEvent(name, creatorFaction.getName()));
         Utils.refreshCommandTree(creator);
 
 
@@ -88,7 +87,7 @@ public class AllianceStateManager extends SavedData {
         Alliance alliance = alliances.get(factionAllianceMap.get(invitingFaction.getName()));
         if (alliance.getMembers().contains(invitedFactionName))
             throw new RuntimeException("The requested faction is already in your alliance.");
-        if (alliance.getMembers().size() >= MAX_ALLIANCE_SIZE)
+        if (alliance.getMembers().size() >= ServerConfig.MAX_ALLIANCE_SIZE.get())
             throw new RuntimeException("Your alliance has already reached its maximum amount of members.");
 
 
@@ -132,7 +131,7 @@ public class AllianceStateManager extends SavedData {
         if (!alliance.getInvited().contains(playerFaction.getName()))
             throw new RuntimeException("You are not invited to the requested alliance.");
 
-        if (alliance.getMembers().size() >= MAX_ALLIANCE_SIZE)
+        if (alliance.getMembers().size() >= ServerConfig.MAX_ALLIANCE_SIZE.get())
             throw new RuntimeException("The alliance has already reached its maximum amount of members.");
 
         alliance.getInvited().remove(playerFaction.getName());
@@ -140,7 +139,7 @@ public class AllianceStateManager extends SavedData {
 
         factionAllianceMap.put(playerFaction.getName(), allianceName);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
+        NeoForge.EVENT_BUS.post(new AllianceJoinEvent(allianceName, playerFaction.getName()));
         Utils.refreshCommandTree(player);
         NetworkManager.broadcastFactionUpdate(playerFaction, server);
         NetworkManager.broadcastFactionRelationshipUpdate(playerFaction, server, allianceName, true);
@@ -184,7 +183,7 @@ public class AllianceStateManager extends SavedData {
         NetworkManager.broadcastFactionAllianceLeave(faction, server);
         NetworkManager.broadcastFactionRelationshipUpdate(faction, server, allianceName, true);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
+        NeoForge.EVENT_BUS.post(new AllianceLeaveEvent(allianceName, faction.getName()));
     }
 
     /**
@@ -202,7 +201,7 @@ public class AllianceStateManager extends SavedData {
 
         NetworkManager.broadcastAllianceDisband(alliance, server);
 
-        MinecraftForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance));
+        NeoForge.EVENT_BUS.post(new AllianceDisbandEvent(alliance));
 
         this.setDirty();
     }
@@ -242,14 +241,14 @@ public class AllianceStateManager extends SavedData {
 
     public void setAbbreviation(String allianceName, String abbreviation, ServerPlayer player, MinecraftServer server) throws RuntimeException {
         if (!alliances.containsKey(allianceName)) throw new RuntimeException("The alliance does not exist.");
-        if (abbreviation.length() > ServerConfig.allianceAbbreviationMaxLength)
+        if (abbreviation.length() > ServerConfig.ALLIANCE_ABBREVIATION_MAX_LENGTH.get())
             throw new RuntimeException("The abbreviation is too long.");
-        if (abbreviation.length() < ServerConfig.allianceAbbreviationMinLength)
+        if (abbreviation.length() < ServerConfig.ALLIANCE_ABBREVIATION_MIN_LENGTH.get())
             throw new RuntimeException("The abbreviation is too short.");
         Alliance alliance = alliances.get(allianceName);
         alliance.setAbbreviation(abbreviation);
         NetworkManager.broadcastAllianceAbbreviationUpdate(allianceName, abbreviation, server);
-        MinecraftForge.EVENT_BUS.post(new AllianceChangeAbbreviationEvent(alliance, player));
+        NeoForge.EVENT_BUS.post(new AllianceChangeAbbreviationEvent(alliance, player));
         this.setDirty();
     }
 
@@ -290,7 +289,7 @@ public class AllianceStateManager extends SavedData {
         try {
             Color color = Color.decode(colorString);
             alliance.setColor(color.getRGB());
-            MinecraftForge.EVENT_BUS.post(new AllianceChangeColorEvent(alliance, user));
+            NeoForge.EVENT_BUS.post(new AllianceChangeColorEvent(alliance, user));
         } catch (NumberFormatException e) {
             throw new NumberFormatException("Not a valid color!");
         }
@@ -312,7 +311,7 @@ public class AllianceStateManager extends SavedData {
     /**
      * Loads the data from NBT
      */
-    public static AllianceStateManager load(CompoundTag tag) {
+    public static AllianceStateManager load(CompoundTag tag, HolderLookup.Provider provider) {
         AllianceStateManager stateManager = new AllianceStateManager();
 
         if (tag.contains("Alliances", Tag.TAG_LIST)) {
@@ -347,7 +346,7 @@ public class AllianceStateManager extends SavedData {
      * Saves the data to NBT
      */
     @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider provider) {
         ListTag alliancesList = new ListTag();
 
         for (Alliance alliance : this.alliances.values()) {

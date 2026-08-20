@@ -1,8 +1,8 @@
 package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.common.MemberRank;
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionMemberOperation;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -15,15 +15,9 @@ import java.util.UUID;
 
 public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableFactionMemberList.MemberEntry> {
 
-    public ScrollableFactionMemberList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableFactionMemberList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Disable background behind items
-        this.setRenderBackground(false);
-
-        // Disable dirt overlay
-        this.setRenderTopAndBottom(false);
     }
 
     public void addMember(String name, UUID uuid, MemberRank rank, MemberRank localPlayerRank, UUID localPlayerUUID) {
@@ -37,7 +31,7 @@ public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableF
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -65,20 +59,20 @@ public class ScrollableFactionMemberList extends ObjectSelectionList<ScrollableF
             this.clientPlayerUUID = clientPlayerUUID;
 
             this.buttonKick = Button.builder(Component.literal("Kick"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.KICK, this.shownPlayerUuid));
+                PacketDistributor.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.KICK, this.shownPlayerUuid));
                 // TODO: update list
             }).bounds(0, 0, 70, 20).build();
             this.buttonKick.active = (shownPlayerRank == MemberRank.MEMBER) && (clientPlayerRank != MemberRank.MEMBER);
 
             if (shownPlayerRank == MemberRank.MEMBER) {
                 this.buttonChangeRank = Button.builder(Component.literal("Promote"), (btn) -> {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.PROMOTE, this.shownPlayerUuid));
+                    PacketDistributor.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.PROMOTE, this.shownPlayerUuid));
                     // TODO: update list
                 }).bounds(0, 0, 70, 20).build();
                 this.buttonChangeRank.active = clientPlayerRank == MemberRank.OWNER;
             } else if (shownPlayerRank == MemberRank.OFFICER) {
                 this.buttonChangeRank = Button.builder(Component.literal("Demote"), (btn) -> {
-                            NetworkHandler.CHANNEL.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.DEMOTE, this.shownPlayerUuid));
+                            PacketDistributor.sendToServer(new PacketFactionMemberOperation(PacketFactionMemberOperation.Action.DEMOTE, this.shownPlayerUuid));
                         })
                         .bounds(0, 0, 70, 20).build();
                 this.buttonChangeRank.active = clientPlayerRank == MemberRank.OWNER;

@@ -5,8 +5,8 @@ import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
 import com.jpreiss.easy_factions.common.MemberRank;
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.*;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -214,22 +214,24 @@ public class FactionScreen extends Screen {
 
     private void initFactionMembersTab(int topY, int bottomY) {
         if (this.factionMemberList == null) {
-            this.factionMemberList = new ScrollableFactionMemberList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.factionMemberList.setLeftPos(this.windowStartX + 10); // Center horizontally within window
+            this.factionMemberList = new ScrollableFactionMemberList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.factionMemberList.setX(this.windowStartX + 10); // Center horizontally within window
             for (Map.Entry<UUID, MemberRank> member : memberRanks.entrySet()) {
                 this.factionMemberList.addMember(playerNames.get(member.getKey()), member.getKey(), member.getValue(), memberRanks.get(clientPlayerUUID), clientPlayerUUID);
             }
         } else {
-            this.factionMemberList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.factionMemberList.setLeftPos(this.windowStartX + 10);
+            this.factionMemberList.setWidth(this.imageWidth - 20);
+            this.factionMemberList.setHeight(bottomY - topY);
+            this.factionMemberList.setY(topY);
+            this.factionMemberList.setX(this.windowStartX + 10);
         }
         this.addRenderableWidget(this.factionMemberList);
     }
 
     private void initFactionInvitesTab(int topY, int bottomY) {
         if (this.factionInviteList == null) {
-            this.factionInviteList = new ScrollableFactionInviteList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.factionInviteList.setLeftPos(this.windowStartX + 10);
+            this.factionInviteList = new ScrollableFactionInviteList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.factionInviteList.setX(this.windowStartX + 10);
             boolean localPlayerCanInvite = memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
             for (UUID invitedUser : factionInvites) {
                 this.factionInviteList.addInvite(playerNames.get(invitedUser), invitedUser, true, localPlayerCanInvite);
@@ -240,8 +242,10 @@ public class FactionScreen extends Screen {
                 }
             }
         } else {
-            this.factionInviteList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.factionInviteList.setLeftPos(this.windowStartX + 10);
+            this.factionInviteList.setWidth(this.imageWidth - 20);
+            this.factionInviteList.setHeight(bottomY - topY);
+            this.factionInviteList.setY(topY);
+            this.factionInviteList.setX(this.windowStartX + 10);
         }
 
         this.addRenderableWidget(this.factionInviteList);
@@ -249,8 +253,8 @@ public class FactionScreen extends Screen {
 
     private void initFactionRelationsTab(int topY, int bottomY) {
         if (this.factionRelationsList == null) {
-            this.factionRelationsList = new ScrollableFactionRelationsList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.factionRelationsList.setLeftPos(this.windowStartX + 10);
+            this.factionRelationsList = new ScrollableFactionRelationsList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.factionRelationsList.setX(this.windowStartX + 10);
             boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
 
             HashMap<String, RelationshipStatus> factionRelations = new HashMap<>(outgoingFactionRelations);
@@ -273,8 +277,10 @@ public class FactionScreen extends Screen {
                 this.factionRelationsList.addFaction(entry.getKey(), entry.getValue(), playerIsOwnerOrOfficer);
             }
         } else {
-            this.factionRelationsList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.factionRelationsList.setLeftPos(this.windowStartX + 10);
+            this.factionRelationsList.setWidth(this.imageWidth - 20);
+            this.factionRelationsList.setHeight(bottomY - topY);
+            this.factionRelationsList.setY(topY);
+            this.factionRelationsList.setX(this.windowStartX + 10);
         }
 
         this.addRenderableWidget(this.factionRelationsList);
@@ -283,13 +289,13 @@ public class FactionScreen extends Screen {
     private void initFactionOptionsTab(int topY, int bottomY) {
         // Friendly Fire Buttons
         Button friendlyFireOn = Button.builder(Component.literal("True"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(true));
+            PacketDistributor.sendToServer(new PacketFactionFriendlyFireToggle(true));
         }).bounds(contentStartX + 170, getContentTopY(), 50, 20).build();
         friendlyFireOn.active = !this.friendlyFire && memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
         this.addRenderableWidget(friendlyFireOn);
 
         Button friendlyFireOff = Button.builder(Component.literal("False"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketFactionFriendlyFireToggle(false));
+            PacketDistributor.sendToServer(new PacketFactionFriendlyFireToggle(false));
         }).bounds(contentStartX + 225, getContentTopY(), 50, 20).build();
         friendlyFireOff.active = this.friendlyFire && memberRanks.get(clientPlayerUUID) != MemberRank.MEMBER;
         this.addRenderableWidget(friendlyFireOff);
@@ -308,7 +314,7 @@ public class FactionScreen extends Screen {
 
         // Abbreviation Submit Button
         Button abbrSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketSetAbbreviation(this.factionAbbrBox.getValue(), false));
+            PacketDistributor.sendToServer(new PacketSetAbbreviation(this.factionAbbrBox.getValue(), false));
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, this.getContentTopY() + spacing * 2 + this.buttonHeight, 50, 20).build());
         abbrSubmitBtn.active = allowAbbreviationChange;
 
@@ -319,13 +325,13 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(this.factionColorBox);
 
         Button colorSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketSetColor(this.factionColorBox.getValue(), false));
+            PacketDistributor.sendToServer(new PacketSetColor(this.factionColorBox.getValue(), false));
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, this.getContentTopY() + spacing * 3 + this.buttonHeight * 2, 50, 20).build());
         colorSubmitBtn.active = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
         // Leave Faction Button (Bottom)
         this.addRenderableWidget(Button.builder(Component.literal("Leave Faction"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketFactionLeaveAction());
+            PacketDistributor.sendToServer(new PacketFactionLeaveAction());
         }).bounds(this.windowStartX + this.imageWidth - this.spacing - 100, this.getContentBottomY() - buttonHeight, 100, 20).build());
     }
 
@@ -338,7 +344,7 @@ public class FactionScreen extends Screen {
             this.addRenderableWidget(new Button.Builder(Component.literal("Confirm Create"), button -> {
                 String name = nameField.getValue();
                 if (!name.isEmpty()) {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.CREATE, name));
+                    PacketDistributor.sendToServer(new PacketAllianceOperation(PacketAllianceOperation.Action.CREATE, name));
                     this.onClose();
                 }
             }).bounds(this.windowStartX + (this.imageWidth / 2) - 40, centerY + 10, 80, 20).build());
@@ -367,14 +373,16 @@ public class FactionScreen extends Screen {
 
     private void initAllianceMembersTab(int topY, int bottomY) {
         if (this.allianceMemberList == null) {
-            this.allianceMemberList = new ScrollableAllianceMemberList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.allianceMemberList.setLeftPos(this.windowStartX + 10);
+            this.allianceMemberList = new ScrollableAllianceMemberList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.allianceMemberList.setX(this.windowStartX + 10);
             for (String member : allianceMembers) {
                 this.allianceMemberList.addMember(member, Objects.equals(member, factionName));
             }
         } else {
-            this.allianceMemberList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.allianceMemberList.setLeftPos(this.windowStartX + 10);
+            this.allianceMemberList.setWidth(this.imageWidth - 20);
+            this.allianceMemberList.setHeight(bottomY - topY);
+            this.allianceMemberList.setY(topY);
+            this.allianceMemberList.setX(this.windowStartX + 10);
         }
 
         this.addRenderableWidget(this.allianceMemberList);
@@ -382,8 +390,8 @@ public class FactionScreen extends Screen {
 
     private void initAllianceInvitesTab(int topY, int bottomY) {
         if (this.allianceInviteList == null) {
-            this.allianceInviteList = new ScrollableAllianceInviteList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.allianceInviteList.setLeftPos(this.windowStartX + 10);
+            this.allianceInviteList = new ScrollableAllianceInviteList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.allianceInviteList.setX(this.windowStartX + 10);
             boolean localPlayerCanInvite = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
             for (String invitedFaction : allianceInvites) {
@@ -396,8 +404,10 @@ public class FactionScreen extends Screen {
                 }
             }
         } else {
-            this.allianceInviteList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.allianceInviteList.setLeftPos(this.windowStartX + 10);
+            this.allianceInviteList.setWidth(this.imageWidth - 20);
+            this.allianceInviteList.setHeight(bottomY - topY);
+            this.allianceInviteList.setY(topY);
+            this.allianceInviteList.setX(this.windowStartX + 10);
         }
 
         this.addRenderableWidget(this.allianceInviteList);
@@ -405,8 +415,8 @@ public class FactionScreen extends Screen {
 
     private void initAllianceRelationsTab(int topY, int bottomY) {
         if (this.allianceRelationsList == null) {
-            this.allianceRelationsList = new ScrollableAllianceRelationsList(this.minecraft, this.imageWidth - 20, this.height, topY, bottomY, 30);
-            this.allianceRelationsList.setLeftPos(this.windowStartX + 10);
+            this.allianceRelationsList = new ScrollableAllianceRelationsList(this.minecraft, this.imageWidth - 20, bottomY - topY, topY, 30);
+            this.allianceRelationsList.setX(this.windowStartX + 10);
             boolean playerIsOwnerOrOfficer = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
             HashMap<String, RelationshipStatus> allianceRelations = new HashMap<>(outgoingAllianceRelations);
@@ -431,8 +441,10 @@ public class FactionScreen extends Screen {
             }
 
         } else {
-            this.allianceRelationsList.updateSize(this.imageWidth - 20, this.height, topY, bottomY);
-            this.allianceRelationsList.setLeftPos(this.windowStartX + 10);
+            this.allianceRelationsList.setWidth(this.imageWidth - 20);
+            this.allianceRelationsList.setHeight(bottomY - topY);
+            this.allianceRelationsList.setY(topY);
+            this.allianceRelationsList.setX(this.windowStartX + 10);
         }
         this.addRenderableWidget(this.allianceRelationsList);
     }
@@ -452,7 +464,7 @@ public class FactionScreen extends Screen {
 
         // AbbreviationSubmit Button
         Button abbrSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketSetAbbreviation(this.allianceAbbrBox.getValue(), true));
+            PacketDistributor.sendToServer(new PacketSetAbbreviation(this.allianceAbbrBox.getValue(), true));
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, getContentTopY(), 50, 20).build());
         abbrSubmitBtn.active = allowAbbreviationChange;
 
@@ -463,13 +475,13 @@ public class FactionScreen extends Screen {
         this.addRenderableWidget(this.allianceColorBox);
 
         Button colorSubmitBtn = this.addRenderableWidget(Button.builder(Component.literal("Set"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketSetColor(this.allianceColorBox.getValue(), true));
+            PacketDistributor.sendToServer(new PacketSetColor(this.allianceColorBox.getValue(), true));
         }).bounds(this.contentStartX + spacing * 2 + 120 + 90, getContentTopY() + buttonHeight + spacing, 50, 20).build());
         colorSubmitBtn.active = memberRanks.get(clientPlayerUUID) == MemberRank.OWNER;
 
         // Leave Alliance Button
         this.addRenderableWidget(Button.builder(Component.literal("Leave Alliance"), (btn) -> {
-            NetworkHandler.CHANNEL.sendToServer(new PacketAllianceLeaveAction());
+            PacketDistributor.sendToServer(new PacketAllianceLeaveAction());
         }).bounds(this.windowStartX + (this.imageWidth / 2) - 50, bottomY - buttonHeight, 100, 20).build());
     }
 
@@ -481,14 +493,14 @@ public class FactionScreen extends Screen {
             ClientConfig.setShowFactionAbbreviation(true);
             this.rebuildWidgets();
         }).bounds(contentStartX + 170, contentStartY, 50, 20).build();
-        factionTrue.active = !ClientConfig.showFactionAbbreviation;
+        factionTrue.active = !ClientConfig.SHOW_FACTION_ABBREVIATION.get();
         this.addRenderableWidget(factionTrue);
 
         Button factionFalse = Button.builder(Component.literal("False"), (btn) -> {
             ClientConfig.setShowFactionAbbreviation(false);
             this.rebuildWidgets();
         }).bounds(contentStartX + 225, contentStartY, 50, 20).build();
-        factionFalse.active = ClientConfig.showFactionAbbreviation;
+        factionFalse.active = ClientConfig.SHOW_FACTION_ABBREVIATION.get();
         this.addRenderableWidget(factionFalse);
 
         // Alliance Abbreviation
@@ -498,20 +510,27 @@ public class FactionScreen extends Screen {
             ClientConfig.setShowAllianceAbbreviation(true);
             this.rebuildWidgets();
         }).bounds(contentStartX + 170, y2, 50, 20).build();
-        allianceTrue.active = !ClientConfig.showAllianceAbbreviation;
+        allianceTrue.active = !ClientConfig.SHOW_ALLIANCE_ABBREVIATION.get();
         this.addRenderableWidget(allianceTrue);
 
         Button allianceFalse = Button.builder(Component.literal("False"), (btn) -> {
             ClientConfig.setShowAllianceAbbreviation(false);
             this.rebuildWidgets();
         }).bounds(contentStartX + 225, y2, 50, 20).build();
-        allianceFalse.active = ClientConfig.showAllianceAbbreviation;
+        allianceFalse.active = ClientConfig.SHOW_ALLIANCE_ABBREVIATION.get();
         this.addRenderableWidget(allianceFalse);
     }
 
     @Override
+    public void renderBackground(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Overrides the renderBackground method to prevent the blur
+    }
+
+    @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics); // Dims the world behind
+        // Called here so that the game is still blurred
+        // GUI Elements are not blurred due to the renderBackground override above
+        super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         // Main Window Border
         guiGraphics.fill(windowStartX - 1, windowStartY - 1, windowStartX + imageWidth + 1, windowStartY + imageHeight + 1, COL_BORDER);

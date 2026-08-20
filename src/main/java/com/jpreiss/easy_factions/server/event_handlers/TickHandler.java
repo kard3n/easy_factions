@@ -6,24 +6,23 @@ import com.jpreiss.easy_factions.server.claims.ClaimManager;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import static net.minecraft.SharedConstants.TICKS_PER_SECOND;
 
-@Mod.EventBusSubscriber
+@EventBusSubscriber
 public class TickHandler {
     private static int pointTickCounter = 0;
 
     @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void onServerTick(ServerTickEvent.Post event) {
 
         pointTickCounter++;
 
-        if (pointTickCounter >= TICKS_PER_SECOND * ServerConfig.pointGenerationInterval) {
+        if (pointTickCounter >= TICKS_PER_SECOND * ServerConfig.POINT_GENERATION_INTERVAL.get()) {
             pointTickCounter = 0;
 
             grantPoints();
@@ -42,7 +41,7 @@ public class TickHandler {
 
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (factionManager.playerIsInFaction(player.getUUID())) {
-                ClaimManager.get(server).addPoints(factionManager.getFactionByPlayer(player.getUUID()).getName(), ServerConfig.pointGenerationAmount);
+                ClaimManager.get(server).addPoints(factionManager.getFactionByPlayer(player.getUUID()).getName(), ServerConfig.POINT_GENERATION_AMOUNT.get());
             }
         }
     }

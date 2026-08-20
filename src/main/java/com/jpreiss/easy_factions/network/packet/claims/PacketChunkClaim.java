@@ -1,43 +1,23 @@
 package com.jpreiss.easy_factions.network.packet.claims;
 
-
 import com.jpreiss.easy_factions.client.ClientPacketHandler;
 import com.mojang.logging.LogUtils;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
-public class PacketChunkClaim {
-    // Dim -> (Chunk, Color)
-    private final Map<ResourceLocation, HashMap<Long, Integer>> chunks;
+public record PacketChunkClaim(Map<ResourceLocation, HashMap<Long, Integer>> chunks) implements CustomPacketPayload {
+    public static final Type<PacketChunkClaim> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_chunk_claim"));
 
-    public PacketChunkClaim(Map<ResourceLocation, HashMap<Long, Integer>> map) {
-        this.chunks = map;
-    }
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketChunkClaim> STREAM_CODEC =
+        StreamCodec.ofMember(PacketChunkClaim::write, PacketChunkClaim::read);
 
-    public Map<ResourceLocation, HashMap<Long, Integer>> getChunks() {
-        return chunks;
-    }
-
-    public static void encode(PacketChunkClaim msg, FriendlyByteBuf buf) {
-        buf.writeInt(msg.chunks.size());
-        for (Map.Entry<ResourceLocation, HashMap<Long, Integer>> dimEntry : msg.chunks.entrySet()) {
-            buf.writeResourceLocation(dimEntry.getKey());
-            buf.writeInt(dimEntry.getValue().size());
-            for (Map.Entry<Long, Integer> entry : dimEntry.getValue().entrySet()) {
-                buf.writeLong(entry.getKey());
-                buf.writeInt(entry.getValue());
-            }
-        }
-    }
-
-    public static PacketChunkClaim decode(FriendlyByteBuf buf) {
+    private static PacketChunkClaim read(RegistryFriendlyByteBuf buf) {
         int size = buf.readInt();
         HashMap<ResourceLocation, HashMap<Long, Integer>> map = new HashMap<>();
         for (int i = 0; i < size; i++) {
@@ -52,11 +32,25 @@ public class PacketChunkClaim {
         return new PacketChunkClaim(map);
     }
 
-    public static void handle(PacketChunkClaim msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+    private void write(RegistryFriendlyByteBuf buf) {
+        buf.writeInt(chunks.size());
+        for (Map.Entry<ResourceLocation, HashMap<Long, Integer>> dimEntry : chunks.entrySet()) {
+            buf.writeResourceLocation(dimEntry.getKey());
+            buf.writeInt(dimEntry.getValue().size());
+            for (Map.Entry<Long, Integer> entry : dimEntry.getValue().entrySet()) {
+                buf.writeLong(entry.getKey());
+                buf.writeInt(entry.getValue());
+            }
+        }
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketChunkClaim msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
             LogUtils.getLogger().atWarn().log("Handling claim chunk packet.");
             ClientPacketHandler.handleClaimChunk(msg);
-        }));
-        ctx.get().setPacketHandled(true);
+        });
     }
 }

@@ -1,7 +1,7 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionCreateAction;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -49,7 +49,7 @@ public class NoFactionScreen extends Screen {
             this.addRenderableWidget(new Button.Builder(Component.literal("Confirm Create"), button -> {
                 String name = nameField.getValue();
                 if (!name.isEmpty()) {
-                    NetworkHandler.CHANNEL.sendToServer(new PacketFactionCreateAction(name));
+                    PacketDistributor.sendToServer(new PacketFactionCreateAction(name));
                     this.onClose();
                 }
             }).bounds(centerX - 82, centerY + 10, 80, 20).build());
@@ -72,8 +72,8 @@ public class NoFactionScreen extends Screen {
             int listTop = this.topPos + 80;
             int listBottom = this.topPos + this.imageHeight - 10;
 
-            this.inviteList = new ScrollableInviteSelectionList(this.minecraft, this.imageWidth - 20, this.height, listTop, listBottom, 30);
-            this.inviteList.setLeftPos(this.leftPos + 10); // Center horizontally
+            this.inviteList = new ScrollableInviteSelectionList(this.minecraft, this.imageWidth - 20, listBottom - listTop, listTop, 30);
+            this.inviteList.setX(this.leftPos + 10); // Center horizontally
 
             for (String invite : invites) {
                 this.inviteList.addInvite(invite);
@@ -84,8 +84,15 @@ public class NoFactionScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Overrides the renderBackground method to prevent the blur
+    }
+
+    @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics);
+        // Called here so that the game is still blurred
+        // GUI Elements are not blurred due to the renderBackground override above
+        super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
 
         // Window Frame and Background
         guiGraphics.fill(leftPos - 1, topPos - 1, leftPos + imageWidth + 1, topPos + imageHeight + 1, COL_BORDER);
@@ -105,8 +112,8 @@ public class NoFactionScreen extends Screen {
 
                 // Draw background box for the list
                 if (this.inviteList != null) {
-                    guiGraphics.fill(leftPos + 10, inviteList.getTop(), leftPos + imageWidth - 10, inviteList.getBottom(), COL_LIST_BG);
-                    guiGraphics.renderOutline(leftPos + 10, inviteList.getTop(), imageWidth - 20, inviteList.getBottom() - inviteList.getTop(), 0xFF444444);
+                    guiGraphics.fill(leftPos + 10, inviteList.getY(), leftPos + imageWidth - 10, inviteList.getY() + inviteList.getHeight(), COL_LIST_BG);
+                    guiGraphics.renderOutline(leftPos + 10, inviteList.getY(), imageWidth - 20, inviteList.getHeight(), 0xFF444444);
                 }
             } else {
                 guiGraphics.drawCenteredString(this.font, "No Pending Invites", this.leftPos + (this.imageWidth / 2), this.topPos + 80, 0x555555);

@@ -28,6 +28,11 @@ public class ErrorPopupScreen extends Screen {
     }
 
     @Override
+    public void renderBackground(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Overrides the renderBackground method to prevent the blur
+    }
+
+    @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         // Render the parent screen first (behind everything)
         if (this.parentScreen != null) {
@@ -35,7 +40,9 @@ public class ErrorPopupScreen extends Screen {
             // Prevents clicks and highlighting
             this.parentScreen.render(guiGraphics, -1, -1, partialTick);
         } else {
-            this.renderBackground(guiGraphics);
+            // Called here so that the game is still blurred
+            // GUI Elements are not blurred due to the renderBackground override above
+            super.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         }
 
         // Push the PoseStack and move forward on the Z-axis
