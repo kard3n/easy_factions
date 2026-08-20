@@ -143,7 +143,7 @@ public class FactionCommands {
                 .then(Commands.literal("friendlyFire")
                         .requires(source -> {
                             try {
-                                if (ServerConfig.forceFriendlyFire) return false;
+                                if (ServerConfig.FORCE_FRIENDLY_FIRE.get()) return false;
                                 return FactionStateManager.get(source.getServer()).playerIsOwnerOrOfficer(source.getPlayerOrException().getUUID());
                             } catch (CommandSyntaxException e) {
                                 return false;
@@ -246,10 +246,10 @@ public class FactionCommands {
                                 ServerPlayer player = source.getPlayerOrException();
                                 FactionStateManager factionManager = FactionStateManager.get(server);
                                 Faction playerFaction = factionManager.getOwnedFaction(player.getUUID());
-                                if (!ServerConfig.enableAbbreviation) {
+                                if (!ServerConfig.ENABLE_ABBREVIATION.get()) {
                                     return false;
                                 }
-                                return playerFaction.getAbbreviation() == null || ServerConfig.allowAbbreviationChange;
+                                return playerFaction.getAbbreviation() == null || ServerConfig.ALLOW_ABBREVIATION_CHANGE.get();
                             } catch (CommandSyntaxException | RuntimeException e) {
                                 return false;
                             }
@@ -257,8 +257,8 @@ public class FactionCommands {
                                 .executes(context -> {
 
                                     String abbreviation = StringArgumentType.getString(context, "abbreviation");
-                                    if (ServerConfig.factionAbbreviationMinLength > abbreviation.length() || abbreviation.length() > ServerConfig.factionAbbreviationMaxLength) {
-                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.factionAbbreviationMinLength + " and " + ServerConfig.factionAbbreviationMaxLength + " letters long."));
+                                    if (ServerConfig.FACTION_ABBREVIATION_MIN_LENGTH.get() > abbreviation.length() || abbreviation.length() > ServerConfig.FACTION_ABBREVIATION_MAX_LENGTH.get()) {
+                                        context.getSource().sendFailure(Component.literal("Abbreviation must be between " + ServerConfig.FACTION_ABBREVIATION_MIN_LENGTH.get() + " and " + ServerConfig.FACTION_ABBREVIATION_MAX_LENGTH.get() + " letters long."));
                                         return 1;
                                     }
 

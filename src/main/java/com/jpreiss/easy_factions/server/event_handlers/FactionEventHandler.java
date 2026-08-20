@@ -9,14 +9,14 @@ import com.jpreiss.easy_factions.network.NetworkManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.OwnableEntity;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 
 import java.util.UUID;
 
-@Mod.EventBusSubscriber
+@EventBusSubscriber
 public class FactionEventHandler {
 
     /**
@@ -25,8 +25,8 @@ public class FactionEventHandler {
      * @param event The damage event
      */
     @SubscribeEvent
-    public static void preventFriendlyFire(LivingAttackEvent event) {
-        if (ServerConfig.forceFriendlyFire) return; // Ignore if friendly fire is forced by config
+    public static void preventFriendlyFire(LivingIncomingDamageEvent event) {
+        if (ServerConfig.FORCE_FRIENDLY_FIRE.get()) return; // Ignore if friendly fire is forced by config
         UUID attackerUUID = getPlayerOrOwnerUUID(event.getSource().getEntity());
         UUID victimUUID = getPlayerOrOwnerUUID(event.getEntity());
 

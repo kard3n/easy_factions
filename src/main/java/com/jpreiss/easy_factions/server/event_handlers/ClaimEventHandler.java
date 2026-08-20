@@ -13,6 +13,7 @@ import com.jpreiss.easy_factions.server.claims.model.ClaimData;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -23,24 +24,21 @@ import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.event.entity.EntityMobGriefingEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.player.FillBucketEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.level.ExplosionEvent;
-import net.minecraftforge.event.level.PistonEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.event.entity.EntityMobGriefingEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.level.PistonEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 
-@Mod.EventBusSubscriber(modid = EasyFactions.MODID)
+@EventBusSubscriber(modid = EasyFactions.MODID)
 public class ClaimEventHandler {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -83,8 +81,8 @@ public class ClaimEventHandler {
         if (alliance != null && alliance.getMembers().contains(victimFaction.getName())) return;
 
         // Configuration
-        int pointsPerKill = ServerConfig.pointsPerKill;
-        int chunkCost = ServerConfig.chunkCost;
+        int pointsPerKill = ServerConfig.POINTS_PER_KILL.get();
+        int chunkCost = ServerConfig.COST_PER_CHUNK.get();
 
         // Add points
         claimManager.addKillPoints(killerFaction.getName(), victimFaction.getName(), pointsPerKill);
@@ -122,7 +120,7 @@ public class ClaimEventHandler {
                 claimManager.unclaimChunk(dimension, pos);
                 claimManager.reduceKillPoints(killerFaction.getName(), victimFaction.getName(), chunkCost);
                 // Give points to the killing faction
-                claimManager.addPoints(killerFaction.getName(), ServerConfig.pointsPerStolenChunk);
+                claimManager.addPoints(killerFaction.getName(), ServerConfig.POINTS_PER_STOLEN_CHUNK.get());
                 currentPoints -= chunkCost;
                 unclaimedChunks.computeIfAbsent(dimension.location(), k -> new ArrayList<>()).add(chunkToRemove);
                 numberOfUnclaimedChunks++;
@@ -218,18 +216,18 @@ public class ClaimEventHandler {
 
         switch (claim.type) {
             case FACTION:
-                if (ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
-                    event.setResult(Event.Result.DENY);
+                if (ServerConfig.FACTION_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE.name())) {
+                    event.setCanGrief(false);
                 }
                 break;
             case CORE:
-                if (ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
-                    event.setResult(Event.Result.DENY);
+                if (ServerConfig.CORE_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE.name())) {
+                    event.setCanGrief(false);
                 }
                 break;
             case ADMIN:
-                if (ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE)) {
-                    event.setResult(Event.Result.DENY);
+                if (ServerConfig.ADMIN_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.MOB_GRIEFING_DAMAGE.name())) {
+                    event.setCanGrief(false);
                 }
                 break;
         }
@@ -249,9 +247,9 @@ public class ClaimEventHandler {
             ClaimData claim = claimManager.getClaim(dimension, chunkPos);
 
             return switch (claim.type) {
-                case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
-                case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
-                case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.EXPLOSION_DAMAGE);
+                case FACTION -> ServerConfig.FACTION_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.EXPLOSION_DAMAGE.name());
+                case CORE -> ServerConfig.CORE_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.EXPLOSION_DAMAGE.name());
+                case ADMIN -> ServerConfig.ADMIN_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.EXPLOSION_DAMAGE.name());
             };
         });
     }
@@ -270,9 +268,9 @@ public class ClaimEventHandler {
         ClaimData claim = claimManager.getClaim(level.dimension(), pistonChunk);
 
         boolean restricted = switch (claim.type) {
-            case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
-            case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
-            case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.PISTON_MOVE);
+            case FACTION -> ServerConfig.FACTION_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PISTON_MOVE.name());
+            case CORE -> ServerConfig.CORE_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PISTON_MOVE.name());
+            case ADMIN -> ServerConfig.ADMIN_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PISTON_MOVE.name());
         };
 
         if (restricted) {
@@ -281,35 +279,20 @@ public class ClaimEventHandler {
     }
 
     @SubscribeEvent
-    public static void onBucketUse(FillBucketEvent event) {
-        if (event.getLevel().isClientSide()) return;
-        MinecraftServer server = event.getEntity().getServer();
-        if (server == null) return;
-
-        if (event.getTarget() instanceof BlockHitResult blockHit) {
-            BlockPos targetPos = blockHit.getBlockPos();
-
-            if (!playerHasPermission(event.getEntity(), targetPos, event.getLevel().dimension(), ChunkInteractionType.USE_BUCKET, server)) {
-                event.setCanceled(true);
-            }
-        }
-    }
-
-    @SubscribeEvent
-    public static void onEntityAttacked(LivingAttackEvent event) {
+    public static void onEntityAttacked(LivingIncomingDamageEvent event) {
         MinecraftServer server = event.getEntity().getServer();
         if (server == null) return;
         ClaimManager claimManager = ClaimManager.get(server);
 
-        if(event.getSource().getEntity() instanceof Player player) {
+        if(event.getSource().getEntity() instanceof Player) {
             if (!claimManager.isClaimed(event.getEntity().level().dimension(), event.getEntity().chunkPosition())) return;
 
             ClaimData claim = claimManager.getClaim(event.getEntity().level().dimension(), event.getEntity().chunkPosition());
 
             boolean restricted = switch (claim.type) {
-                case FACTION -> ServerConfig.factionClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
-                case CORE -> ServerConfig.coreClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
-                case ADMIN -> ServerConfig.adminClaimRestrictions.contains(ChunkInteractionType.PLAYER_ATTACK);
+                case FACTION -> ServerConfig.FACTION_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PLAYER_ATTACK.name());
+                case CORE -> ServerConfig.CORE_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PLAYER_ATTACK.name());
+                case ADMIN -> ServerConfig.ADMIN_CLAIM_RESTRICTIONS.get().contains(ChunkInteractionType.PLAYER_ATTACK.name());
             };
 
             if (restricted) {
@@ -350,18 +333,16 @@ public class ClaimEventHandler {
 
         switch (claim.type) {
             case FACTION:
-                if (!ServerConfig.factionClaimRestrictions.contains(type)) return true;
+                if (!ServerConfig.FACTION_CLAIM_RESTRICTIONS.get().contains(type.name())) return true;
                 FactionStateManager factionManager = FactionStateManager.get(server);
                 Faction faction = factionManager.getFactionByPlayer(player.getUUID());
                 if (faction == null) break;
                 return faction.getName().equals(claim.owner);
             case CORE:
-                if (!ServerConfig.coreClaimRestrictions.contains(type)) return true;
-                Set<Long> coreChunks = claimManager.getPlayerCoreChunks(UUID.fromString(claim.owner)).get(dimension);
-                if (coreChunks == null) break;
-                return coreChunks.contains(pos.toLong());
+                if (!ServerConfig.CORE_CLAIM_RESTRICTIONS.get().contains(type.name())) return true;
+                return claim.owner.equals(player.getUUID().toString());
             case ADMIN:
-                return (!ServerConfig.adminClaimRestrictions.contains(type));
+                return (!ServerConfig.ADMIN_CLAIM_RESTRICTIONS.get().contains(type.name()));
         }
 
         return false;

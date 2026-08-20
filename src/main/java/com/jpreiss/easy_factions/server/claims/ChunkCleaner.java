@@ -9,9 +9,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
-@Mod.EventBusSubscriber
+@EventBusSubscriber
 public class ChunkCleaner {
 
     private static boolean pendingWipe = false;

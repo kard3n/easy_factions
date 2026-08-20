@@ -42,7 +42,7 @@ public class ChunkClaimSelectionManager {
         ChunkPos p2 = pos2.get(player.getUUID());
         ResourceKey<Level> dim = getSelectionDimension(player.getUUID());
 
-        if (!ServerConfig.factionClaimDimensions.contains(dim.location().toString())) {
+        if (!ServerConfig.FACTION_CLAIM_DIMENSIONS.get().contains(dim.location().toString())) {
             throw new RuntimeException("Faction chunks cannot be claimed in this dimensions");
         }
 
@@ -64,12 +64,12 @@ public class ChunkClaimSelectionManager {
             throw new RuntimeException("No chunks in your selected area can be claimed");
         }
 
-        int chunksUnderClaimLimit = ServerConfig.factionBaseClaimLimit + (ServerConfig.factionAdditionalClaimLimitPerMember * faction.getMembers().size()) -  claimManager.getFactionClaimCount(faction.getName());
+        int chunksUnderClaimLimit = ServerConfig.FACTION_BASE_CLAIM_LIMIT.get() + (ServerConfig.FACTION_ADDITIONAL_CLAIM_LIMIT_PER_MEMBER.get() * faction.getMembers().size()) -  claimManager.getFactionClaimCount(faction.getName());
         if(chunksToClaim.size() > chunksUnderClaimLimit) {
             throw new RuntimeException("Cannot claim chunks above your faction's claim limit. You may only claim " + chunksUnderClaimLimit + " more chunks.");
         }
 
-        int cost = chunksToClaim.size() * ServerConfig.chunkCost;
+        int cost = chunksToClaim.size() * ServerConfig.COST_PER_CHUNK.get();
         if (claimManager.getPoints(faction.getName()) < cost) {
             throw new RuntimeException("Faction does not have enough points. Cost: " + cost);
         }
@@ -118,7 +118,7 @@ public class ChunkClaimSelectionManager {
             currentClaim = claimManager.getClaim(dim, pos);
             if (currentClaim.type == ClaimType.FACTION && currentClaim.owner.equals(faction.getName())) {
                 unclaimedChunks.add(pos);
-                if (ServerConfig.refundCostUnclaim) claimManager.addPoints(currentClaim.owner, ServerConfig.chunkCost);
+                if (ServerConfig.REFUND_COST_UNCLAIM.get()) claimManager.addPoints(currentClaim.owner, ServerConfig.COST_PER_CHUNK.get());
             }
 
         }
@@ -140,7 +140,7 @@ public class ChunkClaimSelectionManager {
         ChunkPos p2 = pos2.get(player.getUUID());
         ResourceKey<Level> dim = getSelectionDimension(player.getUUID());
 
-        if (!ServerConfig.coreClaimDimensions.contains(dim.location().toString())) {
+        if (!ServerConfig.CORE_CLAIM_DIMENSIONS.get().contains(dim.location().toString())) {
             throw new RuntimeException("Personal chunks cannot be claimed in this dimensions");
         }
 
@@ -155,22 +155,22 @@ public class ChunkClaimSelectionManager {
             throw new RuntimeException("No chunks in your selected area can be claimed");
         }
 
-        if (chunksToClaim.size() > ServerConfig.coreChunkAmount) {
-            throw new RuntimeException("You cannot claim more than than " + ServerConfig.coreChunkAmount + " core chunks.");
+        if (chunksToClaim.size() > ServerConfig.CORE_CHUNK_AMOUNT.get()) {
+            throw new RuntimeException("You cannot claim more than than " + ServerConfig.CORE_CHUNK_AMOUNT.get() + " core chunks.");
         }
 
         // Calculate how many core chunks the player has already claimed
         int claimedCoreChunks = claimManager.getCoreChunkCount(player.getUUID());
 
-        if (claimedCoreChunks + chunksToClaim.size() > ServerConfig.coreChunkAmount) {
-            throw new RuntimeException("You cannot claim more than " + (ServerConfig.coreChunkAmount - claimedCoreChunks) + " more core chunks.");
+        if (claimedCoreChunks + chunksToClaim.size() > ServerConfig.CORE_CHUNK_AMOUNT.get()) {
+            throw new RuntimeException("You cannot claim more than " + (ServerConfig.CORE_CHUNK_AMOUNT.get() - claimedCoreChunks) + " more core chunks.");
         }
 
         HashMap<ResourceLocation, List<ChunkPos>> claimedChunksMap = new HashMap<>();
         claimedChunksMap.put(dim.location(), chunksToClaim);
         claimManager.claimChunks(claimedChunksMap, ClaimType.CORE, player.getUUID().toString(), 0xFFFFFF, server);
 
-        return "You claimed " + chunksToClaim.size() + " core chunks. Remaining core chunks: " + (ServerConfig.coreChunkAmount - claimedCoreChunks - chunksToClaim.size()) + ".";
+        return "You claimed " + chunksToClaim.size() + " core chunks. Remaining core chunks: " + (ServerConfig.CORE_CHUNK_AMOUNT.get() - claimedCoreChunks - chunksToClaim.size()) + ".";
     }
 
 
@@ -199,12 +199,12 @@ public class ChunkClaimSelectionManager {
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 currentPos = new ChunkPos(x, z);
-                if (ServerConfig.refundCostUnclaim && claimManager.isClaimed(dim, currentPos)) {
+                if (ServerConfig.REFUND_COST_UNCLAIM.get() && claimManager.isClaimed(dim, currentPos)) {
                     ClaimData claimData = claimManager.getClaim(dim, currentPos);
 
                     // Refund points for faction
                     if (claimData.type == ClaimType.FACTION) {
-                        claimManager.addPoints(claimData.owner, ServerConfig.chunkCost);
+                        claimManager.addPoints(claimData.owner, ServerConfig.COST_PER_CHUNK.get());
                     }
                 }
 
@@ -244,8 +244,8 @@ public class ChunkClaimSelectionManager {
         ClaimData currentClaim;
         for (ChunkPos pos : chunksToUnclaim) {
             currentClaim = claimManager.getClaim(dim, pos);
-            if (ServerConfig.refundCostUnclaim && currentClaim.type == ClaimType.FACTION) {
-                claimManager.addPoints(currentClaim.owner, ServerConfig.chunkCost);
+            if (ServerConfig.REFUND_COST_UNCLAIM.get() && currentClaim.type == ClaimType.FACTION) {
+                claimManager.addPoints(currentClaim.owner, ServerConfig.COST_PER_CHUNK.get());
             }
             unclaimedChunks.add(pos);
         }

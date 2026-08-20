@@ -2,36 +2,37 @@ package com.jpreiss.easy_factions.network.packet.factions_alliances;
 
 import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.UUID;
-import java.util.function.Supplier;
 
-public class PacketRemovePlayerData {
-    private final UUID playerUUID;
+public record PacketRemovePlayerData(UUID playerUUID) implements CustomPacketPayload {
+    public static final Type<PacketRemovePlayerData> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_remove_player_data"));
 
-    public PacketRemovePlayerData(UUID playerUUID) {
-        this.playerUUID = playerUUID;
-    }
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketRemovePlayerData> STREAM_CODEC =
+        StreamCodec.ofMember(PacketRemovePlayerData::write, PacketRemovePlayerData::read);
 
-    public static void encode(PacketRemovePlayerData msg, FriendlyByteBuf buf) {
-        buf.writeUUID(msg.playerUUID);
-    }
-
-    public static PacketRemovePlayerData decode(FriendlyByteBuf buf) {
+    private static PacketRemovePlayerData read(RegistryFriendlyByteBuf buf) {
         return new PacketRemovePlayerData(buf.readUUID());
     }
 
-    public static void handle(PacketRemovePlayerData msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            String playerFaction = ClientFactionData.removePlayer(msg.playerUUID);
+    private void write(RegistryFriendlyByteBuf buf) {
+        buf.writeUUID(playerUUID);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketRemovePlayerData msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            String playerFaction = ClientFactionData.removePlayer(msg.playerUUID());
             if (playerFaction != null && ClientFactionData.getFactionMemberCount(playerFaction) < 1) {
                 ClientAllianceData.removeFactionInformation(playerFaction);
             }
-        }));
-        ctx.get().setPacketHandled(true);
+        });
     }
 }

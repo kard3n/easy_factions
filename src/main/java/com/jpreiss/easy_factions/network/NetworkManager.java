@@ -31,7 +31,6 @@ public class NetworkManager {
     }
 
     public static void updatePlayerAboutOthers(ServerPlayer player, MinecraftServer server) {
-        if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
         PacketSyncFactionAlliance onlinePlayerData = getOnlinePlayerData(server);
         NetworkHandler.sendToPlayer(onlinePlayerData, player);
 
@@ -74,7 +73,6 @@ public class NetworkManager {
     }
 
     public static void sendClaimsToPlayer(Map<ResourceLocation, HashMap<Long, Integer>> claims, ServerPlayer player) {
-        if (!NetworkHandler.CHANNEL.isRemotePresent(player.connection.connection)) return;
         for (Map<ResourceLocation, HashMap<Long, Integer>> partition : partitionClaims(claims)) {
             NetworkHandler.sendToPlayer(new PacketChunkClaim(partition), player);
         }
@@ -314,7 +312,7 @@ public class NetworkManager {
                 currentPartition.computeIfAbsent(dim, k -> new HashMap<>()).put(chunkEntry.getKey(), chunkEntry.getValue());
                 currentSize++;
 
-                if (currentSize >= ServerConfig.maxChunksPerPacket) {
+                if (currentSize >= ServerConfig.MAX_CHUNKS_PER_PACKET.get()) {
                     partitions.add(currentPartition);
                     currentPartition = new HashMap<>();
                     currentSize = 0;
@@ -344,7 +342,7 @@ public class NetworkManager {
                 currentPartition.computeIfAbsent(dim, k -> new ArrayList<>()).add(chunkLong);
                 currentSize++;
 
-                if (currentSize >= ServerConfig.maxChunksPerPacket) {
+                if (currentSize >= ServerConfig.MAX_CHUNKS_PER_PACKET.get()) {
                     partitions.add(currentPartition);
                     currentPartition = new HashMap<>();
                     currentSize = 0;

@@ -1,8 +1,8 @@
 package com.jpreiss.easy_factions.client.gui;
 
 import com.jpreiss.easy_factions.common.RelationshipStatus;
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketAllianceSetRelationAction;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -16,15 +16,9 @@ import static com.jpreiss.easy_factions.common.RelationshipStatus.FRIENDLY;
 
 public class ScrollableAllianceRelationsList extends ObjectSelectionList<ScrollableAllianceRelationsList.RelationEntry> {
 
-    public ScrollableAllianceRelationsList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableAllianceRelationsList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Disable background behind items
-        this.setRenderBackground(false);
-
-        // Disable dirt overlay
-        this.setRenderTopAndBottom(false);
     }
 
     public void addAlliance(String allianceName, RelationshipStatus outgoingStatus, RelationshipStatus combinedStatus, boolean playerCanEdit) {
@@ -38,7 +32,7 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     // Entry class
@@ -59,17 +53,17 @@ public class ScrollableAllianceRelationsList extends ObjectSelectionList<Scrolla
             this.combinedStatus = combinedStatus;
 
             this.buttonFriendly = Button.builder(Component.literal("Friendly"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, FRIENDLY));
+                PacketDistributor.sendToServer(new PacketAllianceSetRelationAction(allianceName, FRIENDLY));
             }).bounds(0, 0, 55, 20).build();
             this.buttonFriendly.active = (outgoingAllianceStatus != FRIENDLY) && playerCanEdit;
 
             this.buttonNeutral = Button.builder(Component.literal("Neutral"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.NEUTRAL));
+                PacketDistributor.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.NEUTRAL));
             }).bounds(0, 0, 55, 20).build();
             this.buttonNeutral.active = (outgoingAllianceStatus != RelationshipStatus.NEUTRAL) && playerCanEdit;
 
             this.buttonHostile = Button.builder(Component.literal("Hostile"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.HOSTILE));
+                PacketDistributor.sendToServer(new PacketAllianceSetRelationAction(allianceName, RelationshipStatus.HOSTILE));
             }).bounds(0, 0, 55, 20).build();
             this.buttonHostile.active = (outgoingAllianceStatus != RelationshipStatus.HOSTILE) && playerCanEdit;
 

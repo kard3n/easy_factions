@@ -1,32 +1,27 @@
 package com.jpreiss.easy_factions.network.packet.factions_alliances;
 
 import com.jpreiss.easy_factions.client.data_store.ClientAllianceData;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketFactionLeaveAlliance(String factionName) implements CustomPacketPayload {
+    public static final Type<PacketFactionLeaveAlliance> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_faction_leave_alliance"));
 
-public class PacketFactionLeaveAlliance {
-    private final String factionName;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketFactionLeaveAlliance> STREAM_CODEC =
+            StreamCodec.composite(ByteBufCodecs.STRING_UTF8, PacketFactionLeaveAlliance::factionName, PacketFactionLeaveAlliance::new);
 
-    public PacketFactionLeaveAlliance(String factionName) {
-        this.factionName = factionName;
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public static void encode(PacketFactionLeaveAlliance msg, FriendlyByteBuf buf) {
-        buf.writeUtf(msg.factionName);
-    }
-
-    public static PacketFactionLeaveAlliance decode(FriendlyByteBuf buf) {
-        return new PacketFactionLeaveAlliance(buf.readUtf());
-    }
-
-    public static void handle(PacketFactionLeaveAlliance msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            ClientAllianceData.removeFactionInformation(msg.factionName);
-        }));
-        ctx.get().setPacketHandled(true);
+    public static void handle(PacketFactionLeaveAlliance msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ClientAllianceData.removeFactionInformation(msg.factionName());
+        });
     }
 }

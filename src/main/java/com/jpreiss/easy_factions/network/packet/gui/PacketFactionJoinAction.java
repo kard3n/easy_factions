@@ -2,36 +2,35 @@ package com.jpreiss.easy_factions.network.packet.gui;
 
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketFactionJoinAction(String factionName) implements CustomPacketPayload {
 
-/**
- * Client -> Server packet for joining a faction
- */
-public class PacketFactionJoinAction {
+    public static final Type<PacketFactionJoinAction> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_faction_join_action"));
 
-    private final String factionName;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketFactionJoinAction> STREAM_CODEC =
+        StreamCodec.ofMember(PacketFactionJoinAction::write, PacketFactionJoinAction::read);
 
-    public PacketFactionJoinAction(String factionName) {
-        this.factionName = factionName;
-    }
-
-    public static void encode(PacketFactionJoinAction msg, FriendlyByteBuf buf) {
-        buf.writeUtf(msg.factionName);
-    }
-
-    public static PacketFactionJoinAction decode(FriendlyByteBuf buf) {
+    private static PacketFactionJoinAction read(RegistryFriendlyByteBuf buf) {
         return new PacketFactionJoinAction(buf.readUtf());
     }
 
-    public static void handle(PacketFactionJoinAction msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
+    private void write(RegistryFriendlyByteBuf buf) {
+        buf.writeUtf(factionName);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketFactionJoinAction msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) ctx.player();
             if (player == null) return;
             MinecraftServer server = player.getServer();
             if (server == null) return;
@@ -39,13 +38,13 @@ public class PacketFactionJoinAction {
             FactionStateManager manager = FactionStateManager.get(player.getServer());
 
             try {
-                manager.joinFaction(player, msg.factionName, player.getServer());
+                manager.joinFaction(player, msg.factionName(), player.getServer());
                 // If successful, re-open/refresh the GUI
                 PacketOpenFactionGui.handle(new PacketOpenFactionGui(), ctx);
             } catch (Exception e) {
-                NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
+                // Ignore parsing Error Popup here as it will be converted
+                // NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
             }
         });
-        ctx.get().setPacketHandled(true);
     }
 }

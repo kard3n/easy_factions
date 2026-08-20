@@ -1,36 +1,34 @@
 package com.jpreiss.easy_factions.network.packet.factions_alliances;
 
 import com.jpreiss.easy_factions.client.data_store.ClientFactionData;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketUpdateFactionAbbreviation(String factionName, String abbreviation) implements CustomPacketPayload {
+    public static final Type<PacketUpdateFactionAbbreviation> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_update_faction_abbreviation"));
 
-public class PacketUpdateFactionAbbreviation {
-    private final String factionName;
-    private final String abbreviation;
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketUpdateFactionAbbreviation> STREAM_CODEC =
+            StreamCodec.composite(
+                    ByteBufCodecs.STRING_UTF8,
+                    PacketUpdateFactionAbbreviation::factionName,
+                    ByteBufCodecs.STRING_UTF8,
+                    PacketUpdateFactionAbbreviation::abbreviation,
+                    PacketUpdateFactionAbbreviation::new
+            );
 
-
-    public PacketUpdateFactionAbbreviation(String factionName, String abbreviation) {
-        this.factionName = factionName;
-        this.abbreviation = abbreviation;
+    public static void handle(PacketUpdateFactionAbbreviation msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ClientFactionData.update(msg.factionName(), msg.abbreviation());
+        });
     }
 
-    public static void encode(PacketUpdateFactionAbbreviation msg, FriendlyByteBuf buf) {
-        buf.writeUtf(msg.factionName);
-        buf.writeUtf(msg.abbreviation);
-    }
 
-    public static PacketUpdateFactionAbbreviation decode(FriendlyByteBuf buf) {
-        return new PacketUpdateFactionAbbreviation(buf.readUtf(), buf.readUtf());
-    }
-
-    public static void handle(PacketUpdateFactionAbbreviation msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            ClientFactionData.update(msg.factionName, msg.abbreviation);
-        }));
-        ctx.get().setPacketHandled(true);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

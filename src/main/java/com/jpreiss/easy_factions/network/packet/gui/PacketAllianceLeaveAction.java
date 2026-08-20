@@ -2,35 +2,34 @@ package com.jpreiss.easy_factions.network.packet.gui;
 
 import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
-import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record PacketAllianceLeaveAction() implements CustomPacketPayload {
 
-/**
- * Client -> Server packet for joining a faction
- */
-public class PacketAllianceLeaveAction {
+    public static final Type<PacketAllianceLeaveAction> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("easy_factions", "packet_alliance_leave_action"));
 
-    public PacketAllianceLeaveAction() {
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacketAllianceLeaveAction> STREAM_CODEC =
+        StreamCodec.ofMember(PacketAllianceLeaveAction::write, PacketAllianceLeaveAction::read);
 
-    }
-
-    public static void encode(PacketAllianceLeaveAction msg, FriendlyByteBuf buf) {
-
-    }
-
-    public static PacketAllianceLeaveAction decode(FriendlyByteBuf buf) {
+    private static PacketAllianceLeaveAction read(RegistryFriendlyByteBuf buf) {
         return new PacketAllianceLeaveAction();
     }
 
-    public static void handle(PacketAllianceLeaveAction msg, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
+    private void write(RegistryFriendlyByteBuf buf) {
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    public static void handle(PacketAllianceLeaveAction msg, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ServerPlayer player = (ServerPlayer) ctx.player();
             if (player == null) return;
             MinecraftServer server = player.getServer();
             if (server == null) return;
@@ -45,6 +44,5 @@ public class PacketAllianceLeaveAction {
                 NetworkHandler.sendToPlayer(new PacketOpenErrorPopup(e.getMessage()), player);
             }
         });
-        ctx.get().setPacketHandled(true);
     }
 }

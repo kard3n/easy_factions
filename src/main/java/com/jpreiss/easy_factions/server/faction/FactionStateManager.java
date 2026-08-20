@@ -6,6 +6,7 @@ import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.api.events.*;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -13,7 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
@@ -26,8 +27,6 @@ import java.util.List;
 public class FactionStateManager extends SavedData {
     private static final String DATA_NAME = "faction_data";
 
-    public static final int MAX_FACTION_SIZE = ServerConfig.maxFactionSize;
-
     // In-memory data
     // Map<FactionName, FactionObject>
     private final Map<String, Faction> factions = new HashMap<>();
@@ -38,7 +37,7 @@ public class FactionStateManager extends SavedData {
 
     public static FactionStateManager get(MinecraftServer server) {
         return server.overworld().getDataStorage()
-                .computeIfAbsent(FactionStateManager::load, FactionStateManager::create, DATA_NAME);
+                .computeIfAbsent(new SavedData.Factory<>(FactionStateManager::create, FactionStateManager::load), DATA_NAME);
     }
 
     public static FactionStateManager create() {
@@ -56,7 +55,7 @@ public class FactionStateManager extends SavedData {
         factions.put(name, faction);
         playerFactionMap.put(leader.getUUID(), name);
 
-        MinecraftForge.EVENT_BUS.post(new FactionCreateEvent(name, leader));
+        NeoForge.EVENT_BUS.post(new FactionCreateEvent(name, leader));
 
         Utils.refreshCommandTree(leader);
         NetworkManager.broadcastFactionUpdate(faction, server);
@@ -82,7 +81,7 @@ public class FactionStateManager extends SavedData {
     public String invitePlayer(ServerPlayer invitingUser, UUID invitedUser) throws RuntimeException {
         if(!playerIsOwnerOrOfficer(invitingUser.getUUID())) throw  new RuntimeException("Player is not owner or officer.");
         Faction faction = getFactionByPlayer(invitingUser.getUUID());
-        if (faction.getMembers().size() >= MAX_FACTION_SIZE)
+        if (faction.getMembers().size() >= ServerConfig.MAX_FACTION_SIZE.get())
             throw new RuntimeException("Your faction is already full. Please remove members before you invite more.");
 
         faction.getInvited().add(invitedUser);
@@ -108,13 +107,13 @@ public class FactionStateManager extends SavedData {
         Faction f = factions.get(factionName);
         if (f == null || !f.getInvited().contains(player.getUUID()))
             throw new RuntimeException("You have not been invited to this faction or it does not exist.");
-        if (f.getMembers().size() >= MAX_FACTION_SIZE) throw new RuntimeException("This faction is already full.");
+        if (f.getMembers().size() >= ServerConfig.MAX_FACTION_SIZE.get()) throw new RuntimeException("This faction is already full.");
 
         f.getInvited().remove(player.getUUID());
         f.getMembers().add(player.getUUID());
         playerFactionMap.put(player.getUUID(), factionName);
 
-        MinecraftForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
+        NeoForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
 
         Utils.refreshCommandTree(player);
         NetworkManager.broadcastPlayerInfo(player, server);
@@ -134,7 +133,7 @@ public class FactionStateManager extends SavedData {
         Faction f = factions.get(factionName);
 
         if (f.getOwner().equals(playerUUID)) {
-            MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
+            NeoForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
             disbandFaction(factionName, server);
         } else {
             forceRemoveMember(f, playerUUID);
@@ -203,7 +202,7 @@ public class FactionStateManager extends SavedData {
         faction.getInvited().remove(player);
         faction.getOfficers().remove(player);
         playerFactionMap.remove(player);
-        MinecraftForge.EVENT_BUS.post(new FactionLeaveEvent(faction.getName(), player));
+        NeoForge.EVENT_BUS.post(new FactionLeaveEvent(faction.getName(), player));
         this.setDirty();
     }
 
@@ -229,7 +228,7 @@ public class FactionStateManager extends SavedData {
 
         factions.remove(name);
 
-        MinecraftForge.EVENT_BUS.post(new FactionDisbandEvent(faction));
+        NeoForge.EVENT_BUS.post(new FactionDisbandEvent(faction));
 
         NetworkManager.broadcastFactionDisband(faction, server);
         this.setDirty();
@@ -327,7 +326,7 @@ public class FactionStateManager extends SavedData {
             Faction faction = getFactionByPlayer(user.getUUID());
             Color color = Color.decode(colorString);
             faction.setColor(color.getRGB());
-            MinecraftForge.EVENT_BUS.post(new FactionChangeColorEvent(faction, user));
+            NeoForge.EVENT_BUS.post(new FactionChangeColorEvent(faction, user));
         }
         catch(NumberFormatException e){
             throw new NumberFormatException("Not a valid color!");
@@ -422,12 +421,12 @@ public class FactionStateManager extends SavedData {
      */
     public void setAbbreviation(String factionName, String abbreviation, ServerPlayer player,  MinecraftServer server) throws RuntimeException {
         if (!factions.containsKey(factionName)) throw new RuntimeException("The faction does not exist.");
-        if(abbreviation.length() > ServerConfig.factionAbbreviationMaxLength) throw new RuntimeException("The abbreviation is too long.");
-        if(abbreviation.length() < ServerConfig.factionAbbreviationMinLength) throw new RuntimeException("The abbreviation is too short.");
+        if(abbreviation.length() > ServerConfig.FACTION_ABBREVIATION_MAX_LENGTH.get()) throw new RuntimeException("The abbreviation is too long.");
+        if(abbreviation.length() < ServerConfig.FACTION_ABBREVIATION_MIN_LENGTH.get()) throw new RuntimeException("The abbreviation is too short.");
         Faction faction = factions.get(factionName);
         faction.setAbbreviation(abbreviation);
         NetworkManager.broadcastFactionAbbreviationUpdate(factionName, abbreviation, server);
-        MinecraftForge.EVENT_BUS.post(new FactionChangeAbbreviationEvent(faction, player));
+        NeoForge.EVENT_BUS.post(new FactionChangeAbbreviationEvent(faction, player));
         this.setDirty();
     }
 
@@ -457,7 +456,7 @@ public class FactionStateManager extends SavedData {
     /**
      * Loads the data from NBT
      */
-    public static FactionStateManager load(CompoundTag tag) {
+    public static FactionStateManager load(CompoundTag tag, net.minecraft.core.HolderLookup.Provider provider) {
         FactionStateManager stateManager = new FactionStateManager();
 
         if (tag.contains("Factions", Tag.TAG_LIST)) {
@@ -488,7 +487,7 @@ public class FactionStateManager extends SavedData {
      * Saves the data to NBT
      */
     @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider provider) {
         ListTag list = new ListTag();
 
         for (Faction faction : factions.values()) {

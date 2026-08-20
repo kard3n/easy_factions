@@ -1,6 +1,6 @@
 package com.jpreiss.easy_factions.server.api.events;
 
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 import java.util.UUID;
 

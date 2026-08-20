@@ -1,7 +1,7 @@
 package com.jpreiss.easy_factions.client.gui;
 
-import com.jpreiss.easy_factions.network.NetworkHandler;
 import com.jpreiss.easy_factions.network.packet.gui.PacketFactionJoinAction;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -11,13 +11,9 @@ import org.jetbrains.annotations.NotNull;
 
 public class ScrollableInviteSelectionList extends ObjectSelectionList<ScrollableInviteSelectionList.InviteEntry> {
 
-    public ScrollableInviteSelectionList(Minecraft minecraft, int width, int height, int top, int bottom, int itemHeight) {
-        super(minecraft, width, height, top, bottom, itemHeight);
+    public ScrollableInviteSelectionList(Minecraft minecraft, int width, int height, int top, int itemHeight) {
+        super(minecraft, width, height, top, itemHeight);
         this.centerListVertically = false;
-
-        // Transparent background
-        this.setRenderBackground(false);
-        this.setRenderTopAndBottom(false);
     }
 
     public void addInvite(String factionName) {
@@ -31,7 +27,7 @@ public class ScrollableInviteSelectionList extends ObjectSelectionList<Scrollabl
 
     @Override
     protected int getScrollbarPosition() {
-        return this.getLeft() + this.getRowWidth() + 6;
+        return this.getX() + this.getRowWidth() + 6;
     }
 
     public static class InviteEntry extends ObjectSelectionList.Entry<InviteEntry> {
@@ -42,7 +38,7 @@ public class ScrollableInviteSelectionList extends ObjectSelectionList<Scrollabl
             this.factionName = factionName;
 
             this.joinButton = Button.builder(Component.literal("Join"), (btn) -> {
-                NetworkHandler.CHANNEL.sendToServer(new PacketFactionJoinAction(factionName));
+                PacketDistributor.sendToServer(new PacketFactionJoinAction(factionName));
                 Minecraft.getInstance().setScreen(null); // Close screen on join
             }).bounds(0, 0, 60, 20).build();
         }

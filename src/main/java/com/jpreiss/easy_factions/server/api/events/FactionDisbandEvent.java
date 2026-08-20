@@ -1,7 +1,7 @@
 package com.jpreiss.easy_factions.server.api.events;
 
 import com.jpreiss.easy_factions.server.faction.Faction;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.bus.api.Event;
 
 /**
  * Fired when a faction is disbanded
