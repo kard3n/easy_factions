@@ -357,9 +357,7 @@ public class ClaimEventHandler {
                 return faction.getName().equals(claim.owner);
             case CORE:
                 if (!ServerConfig.coreClaimRestrictions.contains(type)) return true;
-                Set<Long> coreChunks = claimManager.getPlayerCoreChunks(UUID.fromString(claim.owner)).get(dimension);
-                if (coreChunks == null) break;
-                return coreChunks.contains(pos.toLong());
+                return claim.owner.equals(player.getUUID().toString());
             case ADMIN:
                 return (!ServerConfig.adminClaimRestrictions.contains(type));
         }
