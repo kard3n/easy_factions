@@ -2,8 +2,14 @@ package com.jpreiss.easy_factions.server;
 
 import com.jpreiss.easy_factions.server.claims.ChunkInteractionType;
 
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
 import net.neoforged.neoforge.common.ModConfigSpec;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ServerConfig {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
@@ -57,23 +63,40 @@ public class ServerConfig {
             .comment("If set to true, points are refunded when a chunk is unclaimed or set as an admin chunk")
             .define("refundCostUnclaim", false);
 
-    public static final ModConfigSpec.IntValue POINTS_PER_KILL = BUILDER
-            .comment("Points gained against a faction per kill.")
+    public static final ModConfigSpec.IntValue POINTS_PER_PLAYER_KILL = BUILDER
+            .comment("Conquest points gained against a faction per kill.")
             .comment("To unclaim one chunk, chunkCost points are used and pointsPerStolenChunk are giving to the killing faction.")
             .defineInRange("pointsPerKill", 1, 0, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue POINTS_PER_STOLEN_CHUNK = BUILDER
-            .comment("How many claim points are given to a faction for taking a chunk from another faction")
+            .comment("How many conquest points are given to a faction for taking a chunk from another faction")
             .defineInRange("pointsPerStolenChunk", 1, 0, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue POINT_GENERATION_INTERVAL = BUILDER
-            .comment("The interval in seconds in which factions are given points to be used for claiming chunks")
+            .comment("The interval in seconds in which factions are given claim points to be used for claiming chunks")
             .comment("After every interval, a point is given for every online member of the faction.")
             .defineInRange("pointGenerationInterval", 600, 0, Integer.MAX_VALUE);
 
     public static final ModConfigSpec.IntValue POINT_GENERATION_AMOUNT = BUILDER
-            .comment("How many points are given per interval")
+            .comment("How many claim points are given per interval")
             .defineInRange("pointGenerationAmount", 1, 0, Integer.MAX_VALUE);
+
+    public static final ModConfigSpec.BooleanValue COUNT_KILLS_BY_OWNABLE_ENTITIES = BUILDER
+            .comment("If kills done by ownable entities such as wolves should count as PvP kills")
+            .define("countKillsByOwnableEntities", true);
+
+    public static final ModConfigSpec.IntValue DEFAULT_POINTS_PER_KILLED_OWNABLE_ENTITY = BUILDER
+            .comment("The default amount of conquest points a faction receives for killing a pet (wolfs, horses, ...) of another faction.")
+            .defineInRange("defaultPointsPerKilledEntities", 1, 0, Integer.MAX_VALUE);
+
+    // TODO: improve check
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> POINTS_PER_KILLED_OWNABLE_ENTITY = BUILDER
+            .comment("Allows overwriting how many conquest points are rewarded for killing certain ownable entities.")
+            .defineListAllowEmpty("pointsPerKilledOwnableEntity", List.of("minecraft:wolf=1", "minecraft:horse=0"), o -> o instanceof String);
+
+    public static final ModConfigSpec.BooleanValue CONSIDER_OFFLINE_OWNER_OWNABLE_ENTITY_KILLS = BUILDER
+            .comment("Give conquest points for killing pets even if the pet's owner is offline")
+            .define("ownableEntityKillsOwnerOffline", false);
 
     public static final ModConfigSpec.IntValue ADMIN_CLAIM_COLOR = BUILDER
             .comment("The color of admin claims on the map")
@@ -99,6 +122,7 @@ public class ServerConfig {
             .comment("Possible values: BREAK_BLOCK, PLACE_BLOCK, RIGHT_CLICK_BLOCK, LEFT_CLICK_BLOCK, RIGHT_CLICK_ITEM, INTERACT_ENTITY, MOB_GRIEFING_DAMAGE, EXPLOSION_DAMAGE, PISTON_MOVE, PLAYER_ATTACK")
             .defineListAllowEmpty("factionClaimRestrictions", List.of("BREAK_BLOCK", "PLACE_BLOCK", "RIGHT_CLICK_BLOCK", "LEFT_CLICK_BLOCK", "RIGHT_CLICK_ITEM", "INTERACT_ENTITY"), ServerConfig::validateRestriction);
 
+    // TODO: check that the dimension exists. Potentially cache it
     public static final ModConfigSpec.ConfigValue<List<? extends String>> CORE_CLAIM_DIMENSIONS = BUILDER
             .comment("The dimensions allowed for core (player) claims.")
             .defineListAllowEmpty("coreClaimDimensions", List.of("minecraft:overworld"), o -> o instanceof String);
@@ -133,7 +157,35 @@ public class ServerConfig {
         return false;
     }
 
-
     public static final ModConfigSpec SPEC = BUILDER.build();
+
+    private static final Map<EntityType<?>, Integer> POINTS_PER_KILLED_OWNABLE_ENTITY_CACHE = new HashMap<>();
+
+    /**
+     * Rebuilds the caches used for the server config
+     */
+    public static void buildServerConfigCache() {
+        POINTS_PER_KILLED_OWNABLE_ENTITY_CACHE.clear();
+        for (String entry : POINTS_PER_KILLED_OWNABLE_ENTITY.get()) {
+            String[] parts = entry.split("=");
+            if (parts.length == 2) {
+                ResourceLocation entityId = ResourceLocation.parse(parts[0]);
+                int value = Integer.parseInt(parts[1]);
+
+                BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).ifPresent(entityType -> {
+                    POINTS_PER_KILLED_OWNABLE_ENTITY_CACHE.put(entityType, value);
+                });
+            }
+        }
+    }
+
+    /**
+     * Returns how many conquest points should be given for killing an ownable entity
+     * @param entityType The type of the entity
+     * @return AN integer value
+     */
+    public static int getOwnableConquestPointValue(EntityType<?> entityType) {
+        return POINTS_PER_KILLED_OWNABLE_ENTITY_CACHE.getOrDefault(entityType, DEFAULT_POINTS_PER_KILLED_OWNABLE_ENTITY.get());
+    }
 
 }

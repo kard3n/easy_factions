@@ -1,6 +1,7 @@
 package com.jpreiss.easy_factions.server.event_handlers;
 
 import com.jpreiss.easy_factions.EasyFactions;
+import com.jpreiss.easy_factions.Utils;
 import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.Alliance;
@@ -13,13 +14,13 @@ import com.jpreiss.easy_factions.server.claims.model.ClaimData;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
@@ -59,18 +60,57 @@ public class ClaimEventHandler {
 
     @SubscribeEvent
     public static void onPlayerDeath(LivingDeathEvent event) {
-        if (!(event.getEntity() instanceof ServerPlayer victim)) return;
-        if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
+        UUID victimUUID;
+        UUID killerUUID;
 
-        MinecraftServer server = victim.getServer();
+        // The amount of conquest points that should be rewarded for this kill
+        int pointsForKill;
+
+        switch (event.getSource().getEntity()){
+            case ServerPlayer serverPlayer: {
+                killerUUID = event.getEntity().getUUID();
+                break;
+            }
+            case OwnableEntity ownableEntity: {
+                if(!ServerConfig.COUNT_KILLS_BY_OWNABLE_ENTITIES.get()) return; // Kill doesn't count
+                killerUUID = ownableEntity.getOwnerUUID();
+                break;
+            }
+            case null:
+                return;
+            default:
+            {
+                return;
+            }
+        }
+
+        switch (event.getEntity()){
+            case ServerPlayer serverPlayer: {
+                victimUUID = event.getEntity().getUUID();
+                pointsForKill = ServerConfig.POINTS_PER_PLAYER_KILL.get();
+                break;
+            }
+            case OwnableEntity ownableEntity: {
+                victimUUID = ownableEntity.getOwnerUUID();
+                if(!ServerConfig.CONSIDER_OFFLINE_OWNER_OWNABLE_ENTITY_KILLS.get() && !Utils.isPlayerOnline(event.getEntity().getServer(), victimUUID)) return;
+                pointsForKill = ServerConfig.getOwnableConquestPointValue(event.getEntity().getType());
+                break;
+            }
+            default:
+            {
+                return;
+            }
+        }
+
+        MinecraftServer server = event.getEntity().getServer();
         if (server == null) return;
 
         FactionStateManager factionManager = FactionStateManager.get(server);
         AllianceStateManager allianceManager = AllianceStateManager.get(server);
         ClaimManager claimManager = ClaimManager.get(server);
 
-        Faction victimFaction = factionManager.getFactionByPlayer(victim.getUUID());
-        Faction killerFaction = factionManager.getFactionByPlayer(killer.getUUID());
+        Faction victimFaction = factionManager.getFactionByPlayer(victimUUID);
+        Faction killerFaction = factionManager.getFactionByPlayer(killerUUID);
 
         // Check that both players are in factions (and not in the same)
         if (victimFaction == null || killerFaction == null) return;
@@ -80,60 +120,9 @@ public class ClaimEventHandler {
         Alliance alliance = allianceManager.getAllianceByFaction(killerFaction.getName());
         if (alliance != null && alliance.getMembers().contains(victimFaction.getName())) return;
 
-        // Configuration
-        int pointsPerKill = ServerConfig.POINTS_PER_KILL.get();
-        int chunkCost = ServerConfig.COST_PER_CHUNK.get();
-
         // Add points
-        claimManager.addKillPoints(killerFaction.getName(), victimFaction.getName(), pointsPerKill);
-        int currentPoints = claimManager.getKillPoints(killerFaction.getName(), victimFaction.getName());
-
-        ResourceKey<Level> dimension = killer.level().dimension();
-
-        // Get core chunks of the killing faction's leader
-        UUID killerLeaderUUID = killerFaction.getOwner();
-        Map<ResourceKey<Level>, Set<Long>> killerLeaderCoreChunksMap = claimManager.getPlayerCoreChunks(killerLeaderUUID);
-        if (killerLeaderCoreChunksMap == null) killerLeaderCoreChunksMap = new HashMap<>();
-        Set<Long> killerLeaderCoreChunks = killerLeaderCoreChunksMap.get(dimension);
-
-        if (killerLeaderCoreChunks == null || killerLeaderCoreChunks.isEmpty()) {
-            killerLeaderCoreChunks = new HashSet<>();
-            killerLeaderCoreChunks.add(0L);
-        }
-
-        // Identify nearest chunks of the victim faction to the killing faction
-        Map<ResourceKey<Level>, Set<Long>> victimLeaderCoreChunksMap = claimManager.getFactionChunks(victimFaction.getName());
-        if (victimLeaderCoreChunksMap == null) victimLeaderCoreChunksMap = new HashMap<>();
-        Set<Long> victimFactionChunks = victimLeaderCoreChunksMap.get(dimension);
-        if (victimFactionChunks == null || victimFactionChunks.isEmpty()) return;
-
-        Map<ResourceLocation, List<Long>> unclaimedChunks = new HashMap<>();
-
-        int numberOfUnclaimedChunks = 0;
-
-        // Remove chunks from the victim faction
-        while (currentPoints >= chunkCost && !victimFactionChunks.isEmpty()) {
-            long chunkToRemove = getChunkToRemove(victimFactionChunks, killerLeaderCoreChunks);
-
-            if (chunkToRemove != -1) {
-                ChunkPos pos = new ChunkPos(chunkToRemove);
-                claimManager.unclaimChunk(dimension, pos);
-                claimManager.reduceKillPoints(killerFaction.getName(), victimFaction.getName(), chunkCost);
-                // Give points to the killing faction
-                claimManager.addPoints(killerFaction.getName(), ServerConfig.POINTS_PER_STOLEN_CHUNK.get());
-                currentPoints -= chunkCost;
-                unclaimedChunks.computeIfAbsent(dimension.location(), k -> new ArrayList<>()).add(chunkToRemove);
-                numberOfUnclaimedChunks++;
-            } else {
-                break;
-            }
-        }
-
-        if (!unclaimedChunks.isEmpty()) {
-            NetworkManager.notifyChunkUnclaim(unclaimedChunks, server);
-            String msg = killerFaction.getName() + " has removed " + numberOfUnclaimedChunks + " chunks from " + victimFaction.getName() + " through a PvP kill!";
-            NetworkManager.broadcastMessage(Component.literal(msg).withStyle(ChatFormatting.GOLD), server);
-        }
+        claimManager.addKillPoints(killerFaction.getName(), victimFaction.getName(), pointsForKill);
+        claimManager.evaluateKillPoints(killerFaction, victimFaction, event.getEntity().level().dimension(), server);
     }
 
     @SubscribeEvent
@@ -346,31 +335,5 @@ public class ClaimEventHandler {
         }
 
         return false;
-    }
-
-
-    /**
-     * Get a chunk to remove: chunks with the least distance to the nearest core chunk of the enemy leader
-     */
-    private static long getChunkToRemove(Set<Long> victimFactionChunks, Set<Long> killerLeaderCoreChunks) {
-        long chunkToRemove = -1;
-        double minDistanceSq = Double.MAX_VALUE;
-
-        for (Long victimChunkLong : victimFactionChunks) {
-            ChunkPos victimPos = new ChunkPos(victimChunkLong);
-
-            // Find distance to the nearest core chunk of the enemy leader
-            for (Long leaderChunkLong : killerLeaderCoreChunks) {
-                ChunkPos killerPos = new ChunkPos(leaderChunkLong);
-
-                double distSq = Math.pow(victimPos.x - killerPos.x, 2) + Math.pow(victimPos.z - killerPos.z, 2);
-
-                if (distSq < minDistanceSq) {
-                    minDistanceSq = distSq;
-                    chunkToRemove = victimChunkLong;
-                }
-            }
-        }
-        return chunkToRemove;
     }
 }
