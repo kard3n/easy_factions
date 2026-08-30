@@ -47,4 +47,15 @@ public class Utils {
 
         return profileOpt.get().getId();
     }
+
+    /**
+     * Returns true if a player with the given UUID is online
+     * @param server The current Minecraft server
+     * @param playerUUID The UUID of a player
+     * @return True if the player is offline
+     */
+    public static boolean isPlayerOnline(MinecraftServer server, UUID playerUUID) {
+        ServerPlayer player = server.getPlayerList().getPlayer(playerUUID);
+        return player != null;
+    }
 }

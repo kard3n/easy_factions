@@ -6,10 +6,13 @@ import com.jpreiss.easy_factions.server.claims.model.ClaimType;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -83,6 +86,56 @@ public class ClaimManager extends SavedData {
                 victimMap.put(victim, newVal);
             }
             this.setDirty();
+        }
+    }
+
+    public void evaluateKillPoints(Faction killerFaction, Faction victimFaction, ResourceKey<Level> dimension, MinecraftServer server) {
+        int currentPoints = this.getKillPoints(killerFaction.getName(), victimFaction.getName());
+
+        // Get core chunks of the killing faction's leader
+        UUID killerLeaderUUID = killerFaction.getOwner();
+        Map<ResourceKey<Level>, Set<Long>> killerLeaderCoreChunksMap = this.getPlayerCoreChunks(killerLeaderUUID);
+        if (killerLeaderCoreChunksMap == null) killerLeaderCoreChunksMap = new HashMap<>();
+        Set<Long> killerLeaderCoreChunks = killerLeaderCoreChunksMap.get(dimension);
+
+        if (killerLeaderCoreChunks == null || killerLeaderCoreChunks.isEmpty()) {
+            killerLeaderCoreChunks = new HashSet<>();
+            killerLeaderCoreChunks.add(0L);
+        }
+
+        // Identify nearest chunks of the victim faction to the killing faction
+        Map<ResourceKey<Level>, Set<Long>> victimLeaderCoreChunksMap = this.getFactionChunks(victimFaction.getName());
+        if (victimLeaderCoreChunksMap == null) victimLeaderCoreChunksMap = new HashMap<>();
+        Set<Long> victimFactionChunks = victimLeaderCoreChunksMap.get(dimension);
+        if (victimFactionChunks == null || victimFactionChunks.isEmpty()) return;
+
+        Map<ResourceLocation, List<Long>> unclaimedChunks = new HashMap<>();
+        int numberOfUnclaimedChunks = 0;
+
+        int chunkCost = ServerConfig.chunkCost;
+
+        // Remove chunks from the victim faction
+        while (currentPoints >= chunkCost && !victimFactionChunks.isEmpty()) {
+            long chunkToRemove = getChunkToRemove(victimFactionChunks, killerLeaderCoreChunks);
+
+            if (chunkToRemove != -1) {
+                ChunkPos pos = new ChunkPos(chunkToRemove);
+                this.unclaimChunk(dimension, pos);
+                this.reduceKillPoints(killerFaction.getName(), victimFaction.getName(), chunkCost);
+                // Give points to the killing faction
+                this.addPoints(killerFaction.getName(), ServerConfig.pointsPerStolenChunk);
+                currentPoints -= chunkCost;
+                unclaimedChunks.computeIfAbsent(dimension.location(), k -> new ArrayList<>()).add(chunkToRemove);
+                numberOfUnclaimedChunks++;
+            } else {
+                break;
+            }
+        }
+
+        if (!unclaimedChunks.isEmpty()) {
+            NetworkManager.notifyChunkUnclaim(unclaimedChunks, server);
+            String msg = killerFaction.getName() + " has removed " + numberOfUnclaimedChunks + " chunks from " + victimFaction.getName() + " through a PvP kill!";
+            NetworkManager.broadcastMessage(Component.literal(msg).withStyle(ChatFormatting.GOLD), server);
         }
     }
 
@@ -220,6 +273,31 @@ public class ClaimManager extends SavedData {
 
     public Map<ResourceKey<Level>, Set<Long>> getPlayerCoreChunks(UUID playerUuid) {
         return playerCoreClaims.getOrDefault(playerUuid, Collections.emptyMap());
+    }
+
+    /**
+     * Get a chunk to remove: chunks with the least distance to the nearest core chunk of the enemy leader
+     */
+    private static long getChunkToRemove(Set<Long> victimFactionChunks, Set<Long> killerLeaderCoreChunks) {
+        long chunkToRemove = -1;
+        double minDistanceSq = Double.MAX_VALUE;
+
+        for (Long victimChunkLong : victimFactionChunks) {
+            ChunkPos victimPos = new ChunkPos(victimChunkLong);
+
+            // Find distance to the nearest core chunk of the enemy leader
+            for (Long leaderChunkLong : killerLeaderCoreChunks) {
+                ChunkPos killerPos = new ChunkPos(leaderChunkLong);
+
+                double distSq = Math.pow(victimPos.x - killerPos.x, 2) + Math.pow(victimPos.z - killerPos.z, 2);
+
+                if (distSq < minDistanceSq) {
+                    minDistanceSq = distSq;
+                    chunkToRemove = victimChunkLong;
+                }
+            }
+        }
+        return chunkToRemove;
     }
 
     public static ClaimManager load(CompoundTag tag) {

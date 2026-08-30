@@ -2,6 +2,9 @@ package com.jpreiss.easy_factions.server;
 
 import com.jpreiss.easy_factions.EasyFactions;
 import com.jpreiss.easy_factions.server.claims.ChunkInteractionType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -9,8 +12,10 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Mod.EventBusSubscriber(modid = EasyFactions.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ServerConfig {
@@ -83,7 +88,24 @@ public class ServerConfig {
             .comment("How many points are given per interval")
             .defineInRange("pointGenerationAmount", 1, 0, Integer.MAX_VALUE);
 
-    private static final ForgeConfigSpec.IntValue ADMIN_CLAIM_COLOR = BUILDER
+    public static final ForgeConfigSpec.BooleanValue COUNT_KILLS_BY_OWNABLE_ENTITIES = BUILDER
+            .comment("If kills done by ownable entities such as wolves should count as PvP kills")
+            .define("countKillsByOwnableEntities", true);
+
+    public static final ForgeConfigSpec.IntValue DEFAULT_POINTS_PER_KILLED_OWNABLE_ENTITY = BUILDER
+            .comment("The default amount of conquest points a faction receives for killing a pet (wolfs, horses, ...) of another faction.")
+            .defineInRange("defaultPointsPerKilledEntities", 1, 0, Integer.MAX_VALUE);
+
+    // TODO: improve check
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> POINTS_PER_KILLED_OWNABLE_ENTITY = BUILDER
+            .comment("Allows overwriting how many conquest points are rewarded for killing certain ownable entities.")
+            .defineListAllowEmpty("pointsPerKilledOwnableEntity", List.of("minecraft:wolf=1", "minecraft:horse=0"), o -> o instanceof String);
+
+    public static final ForgeConfigSpec.BooleanValue CONSIDER_OFFLINE_OWNER_OWNABLE_ENTITY_KILLS = BUILDER
+            .comment("Give conquest points for killing pets even if the pet's owner is offline")
+            .define("ownableEntityKillsOwnerOffline", false);
+
+    public static final ForgeConfigSpec.IntValue ADMIN_CLAIM_COLOR = BUILDER
             .comment("The color of admin claims on the map")
             .defineInRange("adminColor", 0xFF00FF, 0, 0xFFFFFF);
 
@@ -160,6 +182,10 @@ public class ServerConfig {
     public static int pointsPerStolenChunk;
     public static int pointGenerationInterval;
     public static int pointGenerationAmount;
+    public static boolean countKillsByOwnableEntities;
+    public static int defaultPointsPerKilledOwnableEntity;
+    public static Map<EntityType<?>, Integer> pointsPerKilledOwnableEntity;
+    public static boolean considerOfflineOwnerOwnableEntityKills;
     public static int adminClaimColor;
     public static int coreClaimColor;
     public static Set<ChunkInteractionType> adminClaimRestrictions;
@@ -190,6 +216,18 @@ public class ServerConfig {
         pointsPerStolenChunk = POINTS_PER_STOLEN_CHUNK.get();
         pointGenerationInterval = POINT_GENERATION_INTERVAL.get();
         pointGenerationAmount = POINT_GENERATION_AMOUNT.get();
+        countKillsByOwnableEntities = COUNT_KILLS_BY_OWNABLE_ENTITIES.get();
+        defaultPointsPerKilledOwnableEntity = DEFAULT_POINTS_PER_KILLED_OWNABLE_ENTITY.get();
+        pointsPerKilledOwnableEntity = POINTS_PER_KILLED_OWNABLE_ENTITY.get().stream().flatMap(entry -> {
+            String[] parts = entry.split("=");
+            if (parts.length == 2) {
+                ResourceLocation entityId = ResourceLocation.parse(parts[0]);
+                int value = Integer.parseInt(parts[1]);
+                return BuiltInRegistries.ENTITY_TYPE.getOptional(entityId).map(entityType -> Map.entry(entityType, value)).stream();
+            }
+            return Stream.empty();
+        }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        considerOfflineOwnerOwnableEntityKills = CONSIDER_OFFLINE_OWNER_OWNABLE_ENTITY_KILLS.get();
         adminClaimColor = ADMIN_CLAIM_COLOR.get();
         coreClaimColor = CORE_CLAIM_COLOR.get();
         adminClaimRestrictions = ADMIN_CLAIM_RESTRICTIONS.get().stream().map(ChunkInteractionType::valueOf).collect(Collectors.toSet());
