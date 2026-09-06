@@ -13,9 +13,7 @@ import com.jpreiss.easy_factions.server.claims.ClaimManager;
 import com.jpreiss.easy_factions.server.claims.model.ClaimData;
 import com.jpreiss.easy_factions.server.faction.Faction;
 import com.jpreiss.easy_factions.server.faction.FactionStateManager;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -68,7 +66,7 @@ public class ClaimEventHandler {
 
         switch (event.getSource().getEntity()){
             case ServerPlayer serverPlayer: {
-                killerUUID = event.getEntity().getUUID();
+                killerUUID = serverPlayer.getUUID();
                 break;
             }
             case OwnableEntity ownableEntity: {
@@ -86,7 +84,7 @@ public class ClaimEventHandler {
 
         switch (event.getEntity()){
             case ServerPlayer serverPlayer: {
-                victimUUID = event.getEntity().getUUID();
+                victimUUID = serverPlayer.getUUID();
                 pointsForKill = ServerConfig.POINTS_PER_PLAYER_KILL.get();
                 break;
             }
@@ -193,7 +191,6 @@ public class ClaimEventHandler {
 
     @SubscribeEvent
     public static void onMobGriefing(EntityMobGriefingEvent event) {
-        if (event.getEntity() == null) return;
         MinecraftServer server = event.getEntity().getServer();
         if (server == null) return;
         ClaimManager claimManager = ClaimManager.get(server);
