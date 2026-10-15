@@ -6,6 +6,7 @@ import com.jpreiss.easy_factions.network.NetworkManager;
 import com.jpreiss.easy_factions.server.ServerConfig;
 import com.jpreiss.easy_factions.server.alliance.AllianceStateManager;
 import com.jpreiss.easy_factions.server.api.events.*;
+import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -34,6 +35,48 @@ public class FactionStateManager extends SavedData {
     // Map<PlayerUUID, FactionName> for fast lookups
     private final Map<UUID, String> playerFactionMap = new HashMap<>();
 
+    private static final String LAST_FACTION_LEAVE_KEY = "easy_factions:lastFactionLeave";
+
+    /**
+     * Records the current time (epoch millis) on the player's persistent data
+     * so the join cooldown can be enforced even across server restarts.
+     */
+    private void stampLeaveCooldown(ServerPlayer player) {
+        CompoundTag persistentData = player.getPersistentData();
+        persistentData.putLong(LAST_FACTION_LEAVE_KEY, Util.getEpochMillis());
+    }
+
+    /**
+     * Records the current time on an offline player's persistent data via their UUID.
+     * Used when a player is kicked while offline.
+     */
+    private void stampLeaveCooldownOffline(UUID playerUUID, MinecraftServer server) {
+        ServerPlayer online = server.getPlayerList().getPlayer(playerUUID);
+        if (online != null) {
+            stampLeaveCooldown(online);
+        }
+    }
+
+    /**
+     * Checks whether the player is still on cooldown from leaving a faction.
+     * Throws a RuntimeException with a user-facing message if the cooldown is active.
+     */
+    private void checkJoinCooldown(ServerPlayer player) throws RuntimeException {
+        int cooldownSeconds = ServerConfig.FactionJoinAfterLeaveCooldown.get();
+        if (cooldownSeconds <= 0) return; // cooldown disabled
+
+        CompoundTag persistentData = player.getPersistentData();
+        if (!persistentData.contains(LAST_FACTION_LEAVE_KEY)) return; // never left a faction
+
+        long lastLeaveMillis = persistentData.getLong(LAST_FACTION_LEAVE_KEY);
+        long elapsedMillis = Util.getEpochMillis() - lastLeaveMillis;
+        long cooldownMillis = (long) cooldownSeconds * 1000L;
+
+        if (elapsedMillis < cooldownMillis) {
+            long remainingSeconds = (cooldownMillis - elapsedMillis + 999L) / 1000L; // round up
+            throw new RuntimeException("You must wait " + remainingSeconds + " more seconds before joining a faction.");
+        }
+    }
 
     public static FactionStateManager get(MinecraftServer server) {
         return server.overworld().getDataStorage()
@@ -49,6 +92,7 @@ public class FactionStateManager extends SavedData {
      * Creates a new faction
      */
     public void createFaction(String name, String abbreviation, ServerPlayer leader, MinecraftServer server) throws RuntimeException {
+        checkJoinCooldown(leader);
         if (factions.containsKey(name) || playerFactionMap.containsKey(leader.getUUID()))
             throw new RuntimeException("Either the name is taken or you are already a member of a faction.");
         Faction faction = new Faction(name, abbreviation, leader.getUUID());
@@ -102,6 +146,7 @@ public class FactionStateManager extends SavedData {
      * Accept a faction invite
      */
     public void joinFaction(ServerPlayer player, String factionName, MinecraftServer server) throws RuntimeException {
+        checkJoinCooldown(player);
         if (playerFactionMap.containsKey(player.getUUID()))
             throw new RuntimeException("You can't join another faction!");
         Faction f = factions.get(factionName);
@@ -138,6 +183,7 @@ public class FactionStateManager extends SavedData {
         } else {
             forceRemoveMember(f, playerUUID);
         }
+        stampLeaveCooldown(player);
         Utils.refreshCommandTree(player);
         NetworkManager.broadcastPlayerInfo(player, server);
     }
@@ -183,6 +229,7 @@ public class FactionStateManager extends SavedData {
         }
 
         forceRemoveMember(kickingUserFaction, targetUUID);
+        stampLeaveCooldownOffline(targetUUID, server);
 
         // Notify the player and refresh his command tree if he's online
         ServerPlayer targetOnline = server.getPlayerList().getPlayer(targetUUID);
@@ -215,9 +262,10 @@ public class FactionStateManager extends SavedData {
         Faction faction = factions.get(name);
         if (faction == null) return;
 
-        // Remove all members from lookup
+        // Remove all members from lookup and stamp leave cooldown
         for (UUID member : faction.getMembers()) {
             playerFactionMap.remove(member);
+            stampLeaveCooldownOffline(member, server);
         }
 
         // Remove this faction from its alliance

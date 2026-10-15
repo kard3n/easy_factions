@@ -51,6 +51,10 @@ public class ServerConfig {
             .comment("Allow factions to change their abbreviation")
             .define("allowAbbreviationChange", false);
 
+    public static final ModConfigSpec.IntValue FactionJoinAfterLeaveCooldown = BUILDER
+            .comment("For how long in seconds a player should not be able to join a faction after leaving one")
+            .defineInRange("factionJoinAfterLeaveCooldown", 300, 0, Integer.MAX_VALUE);
+
     public static final ModConfigSpec.IntValue COST_PER_CHUNK = BUILDER
             .comment("Cost in points per chunk")
             .defineInRange("chunkCost", 1, 0, Integer.MAX_VALUE);
