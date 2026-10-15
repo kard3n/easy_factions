@@ -153,12 +153,35 @@ public class FactionStateManager extends SavedData {
         if (f == null || !f.getInvited().contains(player.getUUID()))
             throw new RuntimeException("You have not been invited to this faction or it does not exist.");
         if (f.getMembers().size() >= ServerConfig.MAX_FACTION_SIZE.get()) throw new RuntimeException("This faction is already full.");
-
+        this.forceJoinFaction(player, f, server);
         f.getInvited().remove(player.getUUID());
-        f.getMembers().add(player.getUUID());
-        playerFactionMap.put(player.getUUID(), factionName);
+    }
 
-        NeoForge.EVENT_BUS.post(new FactionJoinEvent(factionName, player));
+    /**
+     * Forcefully makes a player join a faction
+     */
+    public void forceJoinFaction(ServerPlayer player, String factionName, MinecraftServer server) throws RuntimeException {
+        Faction f = factions.get(factionName);
+        if (f == null)
+            throw new RuntimeException("This faction does not exist.");
+        this.forceJoinFaction(player, f, server);
+    }
+
+    /**
+     * Forcefully makes a player join a faction
+     */
+    public void forceJoinFaction(ServerPlayer player, Faction faction, MinecraftServer server) throws RuntimeException {
+        if (playerFactionMap.containsKey(player.getUUID())){
+            this.forceRemoveMember(factions.get(playerFactionMap.get(player.getUUID())), player.getUUID(), server, Component.literal("You have been added to the faction \"" + faction.getName() + "\" by a moderator."));
+        }
+
+        if (faction == null)
+            throw new RuntimeException("This faction or it does not exist.");
+
+        faction.getMembers().add(player.getUUID());
+        playerFactionMap.put(player.getUUID(), faction.getName());
+
+        NeoForge.EVENT_BUS.post(new FactionJoinEvent(faction.getName(), player));
 
         Utils.refreshCommandTree(player);
         NetworkManager.broadcastPlayerInfo(player, server);
@@ -177,15 +200,18 @@ public class FactionStateManager extends SavedData {
 
         Faction f = factions.get(factionName);
 
-        if (f.getOwner().equals(playerUUID)) {
-            NeoForge.EVENT_BUS.post(new FactionLeaveEvent(factionName, player.getUUID()));
-            disbandFaction(factionName, server);
-        } else {
-            forceRemoveMember(f, playerUUID);
-        }
-        stampLeaveCooldown(player);
-        Utils.refreshCommandTree(player);
-        NetworkManager.broadcastPlayerInfo(player, server);
+        forceRemoveMember(f, playerUUID, server, Component.literal("You left the faction."));
+
+    }
+
+    /**
+     * Forcefully makes a player leave a faction
+     */
+    public void forceLeaveFaction(ServerPlayer player, MinecraftServer server) throws RuntimeException {
+        Faction f = this.getFactionByPlayer(player.getUUID());
+        if (f == null || !f.getMembers().contains(player.getUUID()))
+            throw new RuntimeException("This faction does not exist.");
+        this.forceRemoveMember(f, player.getUUID(), server, Component.literal("You have been removed from your faction by a moderator."));
     }
 
     /**
@@ -228,28 +254,31 @@ public class FactionStateManager extends SavedData {
             throw new RuntimeException("You can't kick other officers or the owner from the faction!");
         }
 
-        forceRemoveMember(kickingUserFaction, targetUUID);
-        stampLeaveCooldownOffline(targetUUID, server);
-
-        // Notify the player and refresh his command tree if he's online
-        ServerPlayer targetOnline = server.getPlayerList().getPlayer(targetUUID);
-        if (targetOnline != null) {
-            Utils.refreshCommandTree(targetOnline);
-            targetOnline.sendSystemMessage(Component.literal("You were kicked from the faction."));
-            NetworkManager.removeSinglePlayerInfo(targetUUID, server);
-        }
-
+        forceRemoveMember(kickingUserFaction, targetUUID, server, Component.literal("You were kicked from the faction."));
     }
 
     /**
      * Forcefully removes the player from the faction
      */
-    private void forceRemoveMember(Faction faction, UUID player) {
-        faction.getMembers().remove(player);
-        faction.getInvited().remove(player);
-        faction.getOfficers().remove(player);
+    private void forceRemoveMember(Faction faction, UUID player, MinecraftServer server, Component message){
+        if (faction.getOwner().equals(player) || faction.getMembers().size() < 2) {
+            disbandFaction(faction.getName(), server);
+        }
+        else{
+            faction.getMembers().remove(player);
+            faction.getInvited().remove(player);
+            faction.getOfficers().remove(player);
+        }
         playerFactionMap.remove(player);
         NeoForge.EVENT_BUS.post(new FactionLeaveEvent(faction.getName(), player));
+        stampLeaveCooldownOffline(player, server);
+        // Notify the player and refresh his command tree if he's online
+        ServerPlayer targetOnline = server.getPlayerList().getPlayer(player);
+        if (targetOnline != null) {
+            Utils.refreshCommandTree(targetOnline);
+            targetOnline.sendSystemMessage(message);
+            NetworkManager.removeSinglePlayerInfo(player, server);
+        }
         this.setDirty();
     }
 

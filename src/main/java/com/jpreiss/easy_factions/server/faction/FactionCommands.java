@@ -8,7 +8,6 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -80,9 +79,9 @@ public class FactionCommands {
                                 return false;
                             }
                         })
-                        .then(Commands.argument("name", StringArgumentType.greedyString()).suggests(FACTIONS_INVITATIONS_SUGGESTION).executes(context -> {
+                        .then(Commands.argument("factionName", StringArgumentType.greedyString()).suggests(FACTIONS_INVITATIONS_SUGGESTION).executes(context -> {
                             ServerPlayer player = context.getSource().getPlayerOrException();
-                            String name = StringArgumentType.getString(context, "name");
+                            String name = StringArgumentType.getString(context, "factionName");
                             FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
 
                             try {
@@ -92,6 +91,37 @@ public class FactionCommands {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
 
+                            return 1;
+                        })))
+                // Force Join
+                .then(Commands.literal("forceJoin")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("factionName", StringArgumentType.string()).suggests(ALL_FACTIONS)
+                                .then(Commands.argument("target", EntityArgument.player()).executes(context -> {
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "target");
+                                    String factionName = StringArgumentType.getString(context, "factionName");
+                                    FactionStateManager data = FactionStateManager.get(context.getSource().getServer());
+                                    try {
+                                        data.forceJoinFaction(target, factionName, context.getSource().getServer());
+                                        context.getSource().sendSuccess(() -> Component.literal("Added " + target.getName() + " to faction \"" + factionName + "\""), false);
+                                    } catch (RuntimeException e) {
+                                        context.getSource().sendFailure(Component.literal(e.getMessage()));
+                                    }
+                                    return 1;
+                                }))))
+                // Force Leave
+                .then(Commands.literal("forceLeave")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("target", EntityArgument.player()).executes(context -> {
+                            ServerPlayer target = EntityArgument.getPlayer(context, "target");
+                            MinecraftServer server = context.getSource().getServer();
+                            FactionStateManager data = FactionStateManager.get(server);
+                            try {
+                                data.forceLeaveFaction(target, server);
+                                context.getSource().sendSuccess(() -> Component.literal("Removed " + target.getName() + " from their faction "), false);
+                            } catch (RuntimeException e) {
+                                context.getSource().sendFailure(Component.literal(e.getMessage()));
+                            }
                             return 1;
                         })))
 
@@ -109,7 +139,6 @@ public class FactionCommands {
 
                             try {
                                 data.leaveFaction(player, context.getSource().getServer());
-                                context.getSource().sendSuccess(() -> Component.literal("You left the faction."), false);
                             } catch (RuntimeException e) {
                                 context.getSource().sendFailure(Component.literal(e.getMessage()));
                             }
@@ -438,6 +467,21 @@ public class FactionCommands {
             }
         } catch (NullPointerException ignored) {
 
+        }
+        return builder.buildFuture();
+
+    };
+    /**
+     * Suggests all other factions
+     */
+    private static final SuggestionProvider<CommandSourceStack> ALL_FACTIONS = (context, builder) -> {
+        FactionStateManager stateManager = FactionStateManager.get(context.getSource().getServer());
+        for (String factionName : stateManager.getAllFactionNames()) {
+            if (factionName.contains(" ")) {
+                builder.suggest("\"" + factionName + "\"");
+            } else {
+                builder.suggest(factionName);
+            }
         }
         return builder.buildFuture();
 
